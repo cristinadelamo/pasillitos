@@ -768,6 +768,7 @@ function itemHtml(it) {
   return `<div class="s-item${it.checked ? ' done' : ''}" id="si-${it.id}" onclick="toggleItem('${it.id}')">
     <div class="chk${it.checked ? ' on' : ''}">${it.checked ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>
     <span class="s-name">${esc(it.nombre)}</span>
+    <button class="del-item" onclick="event.stopPropagation();deleteListaItem('${it.id}')">×</button>
   </div>`;
 }
 
