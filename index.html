@@ -901,6 +901,7 @@ function importDB(input) {
       await persist();
       lista = loadLista();
       renderLista();
+      renderPasillos();
       renderSettings();
       toast('Copia de seguridad importada ✓');
     } catch (err) {
