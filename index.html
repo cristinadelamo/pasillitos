@@ -650,7 +650,7 @@ async function analyzePhoto() {
           role: 'user',
           content: [
             { type: 'image', source: { type: 'base64', media_type: mime, data: b64 } },
-            { type: 'text', text: `Esta imagen contiene una lista de la compra escrita a mano.\nExtrae todos los artículos que aparecen en la lista.\nResponde ÚNICAMENTE con JSON válido, sin texto adicional:\n{"articulos":["artículo 1","artículo 2"]}\nNormaliza los nombres: singular, minúsculas, sin cantidades ni unidades de medida.` }
+            { type: 'text', text: `Esta imagen contiene una lista de la compra escrita a mano.\nExtrae todos los artículos que aparecen en la lista. Cada línea de la lista es UN artículo, aunque tenga varias palabras — nunca separes las palabras de un mismo artículo en elementos distintos.\nEjemplo correcto: "chocolate negro" es UN artículo, no dos.\nResponde ÚNICAMENTE con JSON válido, sin texto adicional:\n{"articulos":["artículo 1","artículo 2"]}\nNormaliza los nombres: singular, minúsculas, sin cantidades ni unidades de medida.` }
           ]
         }]
       })
