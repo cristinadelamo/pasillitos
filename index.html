@@ -208,6 +208,8 @@
         <h2>📊 Base de datos</h2>
         <p class="s-stat" id="dbStat"></p>
         <button class="btn btn-s btn-w" onclick="exportDB()" style="margin-bottom:8px">⬇️ Exportar copia de seguridad</button>
+        <button class="btn btn-s btn-w" onclick="document.getElementById('importFile').click()" style="margin-bottom:8px">⬆️ Importar copia de seguridad</button>
+        <input type="file" id="importFile" accept=".sqlite" style="display:none" onchange="importDB(this)">
         <button class="btn btn-r btn-w" onclick="clearAll()">🗑️ Borrar todos los datos</button>
       </div>
     </div>
@@ -326,6 +328,7 @@ async function idbSave(data) {
 
 // ── SQL HELPERS ──────────────────────────────────────────
 let sqldb = null;
+let SQL = null;
 
 function q(sql, params = []) {
   const stmt = sqldb.prepare(sql);
@@ -882,6 +885,32 @@ function exportDB() {
   toast('Copia de seguridad exportada ✓');
 }
 
+function importDB(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!confirm(`¿Importar "${file.name}"? Esto reemplazará todos los datos actuales.`)) {
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const arr = new Uint8Array(e.target.result);
+      sqldb = new SQL.Database(arr);
+      sqldb.exec(SCHEMA);
+      await persist();
+      lista = loadLista();
+      renderLista();
+      renderSettings();
+      toast('Copia de seguridad importada ✓');
+    } catch (err) {
+      toast('Error al importar: ' + err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 function clearAll() {
   if (!confirm('¿Borrar todos los datos? Esta acción no se puede deshacer.')) return;
   sqldb.exec('DELETE FROM lista; DELETE FROM articulos; DELETE FROM pasillos; DELETE FROM config;');
@@ -905,7 +934,7 @@ async function initApp() {
   const msg = document.getElementById('initMsg');
   try {
     msg.textContent = 'Cargando motor SQLite...';
-    const SQL = await initSqlJs({
+    SQL = await initSqlJs({
       locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/${f}`
     });
 
