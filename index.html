@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pasillitos</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    :root{
+      --green:#2e7d32;--green-l:#4caf50;--green-d:#1b5e20;
+      --amber:#f57c00;--red:#c62828;
+      --bg:#f0f2f0;--card:#fff;--text:#1a1a1a;--sub:#757575;
+      --border:#e0e0e0;--tab:64px;--hdr:56px;
+    }
+    html,body{height:100%;height:100dvh}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;overflow:hidden;max-width:600px;margin:0 auto}
+
+    /* INIT SCREEN */
+    #initScreen{position:fixed;inset:0;background:var(--green);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#fff;gap:10px}
+    #initScreen.hidden{display:none}
+    #initScreen .logo{font-size:52px;line-height:1}
+    #initScreen h1{font-size:28px;font-weight:800;letter-spacing:-.5px}
+    #initScreen p{opacity:.75;font-size:14px;margin-top:8px}
+    #initScreen .err{text-align:center;padding:0 24px;opacity:.9;font-size:15px;line-height:1.6}
+
+    /* HEADER */
+    .hdr{background:var(--green);color:#fff;height:var(--hdr);display:flex;align-items:center;padding:0 16px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+    .hdr h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+    .hdr-actions{margin-left:auto}
+    .hdr-btn{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
+
+    /* TABS */
+    .content{flex:1;overflow:hidden;position:relative}
+    .panel{display:none;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:16px}
+    .panel.active{display:block}
+    .tabbar{height:var(--tab);background:#fff;display:flex;border-top:1px solid var(--border);flex-shrink:0}
+    .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:var(--sub);font-size:10px;font-weight:600;cursor:pointer;transition:color .2s;letter-spacing:.3px}
+    .tab.on{color:var(--green)}
+    .tab svg{width:22px;height:22px}
+
+    /* BUTTONS */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-radius:10px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+    .btn:active{opacity:.75}
+    .btn-p{background:var(--green);color:#fff}
+    .btn-s{background:#fff;color:var(--text);border:1.5px solid var(--border)}
+    .btn-r{background:var(--red);color:#fff}
+    .btn-w{width:100%}
+    .icon-btn{background:none;border:none;cursor:pointer;color:var(--sub);padding:6px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+    .icon-btn:active{background:var(--bg)}
+
+    /* CARD */
+    .card{background:var(--card);border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.09);overflow:hidden}
+
+    /* ── LISTA TAB ── */
+    .photo-area{padding:14px 16px 0;display:flex;flex-direction:column;gap:10px}
+    .photo-ph{border:2px dashed var(--border);border-radius:14px;height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--sub);cursor:pointer;background:#fff;transition:border-color .2s}
+    .photo-ph:active{border-color:var(--green)}
+    .photo-ph svg{width:36px;height:36px;opacity:.4}
+    .photo-ph span{font-size:14px;font-weight:500}
+    .photo-prev{width:100%;max-height:200px;object-fit:cover;border-radius:14px;display:none}
+    .photo-prev.show{display:block}
+    .photo-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+    /* list */
+    .sec{margin:14px 16px 0}
+    .sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+    .badge{border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700}
+    .badge-g{background:var(--green);color:#fff}
+    .badge-a{background:var(--amber);color:#fff}
+    .sec-name{font-size:13px;color:var(--sub);font-weight:500}
+    .s-item{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+    .s-item:last-child{border-bottom:none}
+    .s-item:active{background:var(--bg)}
+    .s-item.done .s-name{text-decoration:line-through;color:#bbb}
+    .chk{width:23px;height:23px;border:2px solid var(--border);border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
+    .chk.on{background:var(--green);border-color:var(--green)}
+    .s-name{flex:1;font-size:16px;line-height:1.3}
+    .classify-wrap{padding:10px 16px 0}
+
+    /* empty */
+    .empty{padding:48px 24px;text-align:center;color:var(--sub)}
+    .empty svg{width:56px;height:56px;opacity:.25;margin-bottom:14px;display:block;margin-left:auto;margin-right:auto}
+    .empty p{font-size:15px;line-height:1.6}
+
+    /* ── PASILLOS TAB ── */
+    .p-actions{padding:14px 16px 2px}
+    .p-card{margin:10px 16px;background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.09);overflow:hidden}
+    .p-hdr{display:flex;align-items:center;padding:14px 16px;cursor:pointer;user-select:none;gap:12px}
+    .p-num{background:var(--green);color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
+    .p-info{flex:1;min-width:0}
+    .p-title{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .p-count{font-size:12px;color:var(--sub);margin-top:2px}
+    .chevron{transition:transform .2s;color:var(--sub);flex-shrink:0}
+    .chevron.open{transform:rotate(180deg)}
+    .p-body{display:none;border-top:1px solid var(--border)}
+    .p-body.open{display:block}
+    .p-item{display:flex;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border)}
+    .p-item:last-child{border-bottom:none}
+    .p-item-name{flex:1;font-size:15px}
+    .p-item-acts{display:flex;gap:2px}
+    .p-footer{padding:12px 16px;border-top:1px solid var(--border)}
+    .p-manage{display:flex;gap:8px;padding:8px 16px 12px;background:var(--bg)}
+    .inline-row{display:flex;gap:8px;align-items:center;padding:10px 16px;border-top:1px solid var(--border)}
+    .inline-row input{flex:1;padding:9px 12px;border:1.5px solid var(--green);border-radius:8px;font-size:15px;outline:none}
+
+    /* ── SETTINGS TAB ── */
+    .settings{padding:16px;display:flex;flex-direction:column;gap:14px}
+    .s-sec{background:#fff;border-radius:14px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.09)}
+    .s-sec h2{font-size:16px;font-weight:700;margin-bottom:14px}
+    .s-sec p{font-size:13px;color:var(--sub);margin-top:10px;line-height:1.5}
+    .s-stat{font-size:13px;color:var(--sub);margin-bottom:12px}
+
+    /* FORM */
+    .fg{margin-bottom:14px}
+    .fg label{display:block;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+    .fg input,.fg select,.api-in{width:100%;padding:13px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;outline:none;transition:border-color .2s;background:#fff;color:var(--text)}
+    .fg input:focus,.fg select:focus,.api-in:focus{border-color:var(--green)}
+    .api-in{font-family:monospace;font-size:14px;margin-bottom:12px}
+
+    /* MODAL (bottom sheet) */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:200}
+    .overlay.show{display:flex}
+    .sheet{background:#fff;border-radius:20px 20px 0 0;padding:8px 24px 32px;width:100%;max-width:600px}
+    .sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+    .sheet h2{font-size:18px;font-weight:700;margin-bottom:16px}
+    .modal-btns{display:flex;gap:8px;margin-top:18px}
+
+    /* LOADING */
+    .loading{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:300}
+    .loading.show{display:flex}
+    .spin-card{background:#fff;border-radius:18px;padding:32px 40px;display:flex;flex-direction:column;align-items:center;gap:14px}
+    .spin-card p{font-size:15px;font-weight:500;color:var(--sub)}
+    .spinner{width:42px;height:42px;border:4px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite}
+    #initScreen .spinner{border-top-color:#fff;margin-top:12px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:calc(var(--tab) + 14px);left:50%;transform:translateX(-50%) translateY(10px);background:#323232;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:500;opacity:0;transition:all .25s;z-index:400;white-space:nowrap;pointer-events:none}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    /* classify sheet extras */
+    .cl-prog{font-size:13px;color:var(--sub);margin-bottom:6px}
+    .cl-sub{font-size:14px;color:var(--sub);margin-bottom:6px}
+    .cl-name{font-size:22px;font-weight:800;margin-bottom:20px;line-height:1.2}
+  </style>
+</head>
+<body>
+
+<!-- INIT SCREEN -->
+<div id="initScreen">
+  <div class="logo">🛒</div>
+  <h1>Pasillitos</h1>
+  <div class="spinner"></div>
+  <p id="initMsg">Iniciando base de datos...</p>
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <h1>🛒 Pasillitos</h1>
+  <div class="hdr-actions">
+    <button class="hdr-btn" id="clearBtn" style="display:none" onclick="clearLista()">Nueva lista</button>
+  </div>
+</header>
+
+<main class="content">
+
+  <!-- LISTA -->
+  <div class="panel active" id="panel-lista">
+    <div class="photo-area">
+      <div class="photo-ph" id="photoPh" onclick="document.getElementById('fileIn').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        <span>Fotografía tu lista de la compra</span>
+      </div>
+      <img class="photo-prev" id="photoPrev" alt="">
+      <input type="file" id="fileIn" accept="image/*" capture="environment" style="display:none">
+      <div id="photoActions" style="display:none" class="photo-btns">
+        <button class="btn btn-s" onclick="document.getElementById('fileIn').click()">📷 Cambiar foto</button>
+        <button class="btn btn-p" onclick="analyzePhoto()">✨ Analizar</button>
+      </div>
+    </div>
+    <div id="listaContent"></div>
+    <div class="classify-wrap" id="classifyWrap" style="display:none">
+      <button class="btn btn-p btn-w" onclick="startClassify()">🏷️ Clasificar artículos sin pasillo</button>
+    </div>
+  </div>
+
+  <!-- PASILLOS -->
+  <div class="panel" id="panel-pasillos">
+    <div class="p-actions">
+      <button class="btn btn-p btn-w" onclick="openPasilloModal()">+ Añadir pasillo</button>
+    </div>
+    <div id="pasillosList"></div>
+  </div>
+
+  <!-- AJUSTES -->
+  <div class="panel" id="panel-ajustes">
+    <div class="settings">
+      <div class="s-sec">
+        <h2>🔑 API Key de Gemini</h2>
+        <input class="api-in" type="password" id="apiIn" placeholder="AIzaSy...">
+        <button class="btn btn-p btn-w" onclick="saveKey()">Guardar</button>
+        <p>Obtén tu clave gratuita en <strong>aistudio.google.com</strong>. Se guarda en la base de datos local del dispositivo.</p>
+      </div>
+      <div class="s-sec">
+        <h2>📊 Base de datos</h2>
+        <p class="s-stat" id="dbStat"></p>
+        <button class="btn btn-s btn-w" onclick="exportDB()" style="margin-bottom:8px">⬇️ Exportar copia de seguridad</button>
+        <button class="btn btn-r btn-w" onclick="clearAll()">🗑️ Borrar todos los datos</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<nav class="tabbar">
+  <button class="tab on" id="tab-lista" onclick="goTab('lista')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+    </svg>
+    Mi lista
+  </button>
+  <button class="tab" id="tab-pasillos" onclick="goTab('pasillos')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    Pasillos
+  </button>
+  <button class="tab" id="tab-ajustes" onclick="goTab('ajustes')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+    </svg>
+    Ajustes
+  </button>
+</nav>
+
+<!-- MODAL: pasillo -->
+<div class="overlay" id="pasilloOverlay" onclick="closePasilloModal(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2 id="pasilloModalTitle">Añadir pasillo</h2>
+    <div class="fg">
+      <label>Número</label>
+      <input type="number" id="pNum" placeholder="1" min="1" max="99">
+    </div>
+    <div class="fg">
+      <label>Nombre</label>
+      <input type="text" id="pName" placeholder="Ej: Frutas y verduras">
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-s" style="flex:1" onclick="closePasilloModal()">Cancelar</button>
+      <button class="btn btn-p" style="flex:1" onclick="savePasillo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: clasificar -->
+<div class="overlay" id="classifyOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <p class="cl-prog" id="clProg"></p>
+    <p class="cl-sub">¿En qué pasillo está...?</p>
+    <p class="cl-name" id="clName"></p>
+    <div class="fg">
+      <label>Pasillo</label>
+      <select id="clSelect"></select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-s" style="flex:1" onclick="skipClassify()">Saltar</button>
+      <button class="btn btn-p" style="flex:1" onclick="doClassify()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING overlay (Gemini) -->
+<div class="loading" id="loading">
+  <div class="spin-card">
+    <div class="spinner"></div>
+    <p>Analizando tu lista...</p>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- sql.js from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/sql-wasm.js"></script>
+<script>
+'use strict';
+
+// ── INDEXEDDB ────────────────────────────────────────────
+const IDB_NAME = 'pasillitos', IDB_STORE = 'db', IDB_KEY = 'main';
+
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE);
+    r.onsuccess = e => res(e.target.result);
+    r.onerror = e => rej(e.target.error);
+  });
+}
+
+async function idbLoad() {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const r = tx.objectStore(IDB_STORE).get(IDB_KEY);
+    r.onsuccess = e => res(e.target.result || null);
+    r.onerror = e => rej(e.target.error);
+  });
+}
+
+async function idbSave(data) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(data, IDB_KEY);
+    tx.oncomplete = res;
+    tx.onerror = e => rej(e.target.error);
+  });
+}
+
+// ── SQL HELPERS ──────────────────────────────────────────
+let sqldb = null;
+
+function q(sql, params = []) {
+  const stmt = sqldb.prepare(sql);
+  if (params.length) stmt.bind(params);
+  const rows = [];
+  while (stmt.step()) rows.push(stmt.getAsObject());
+  stmt.free();
+  return rows;
+}
+
+function q1(sql, params = []) { return q(sql, params)[0] || null; }
+
+function run(sql, params = []) { sqldb.run(sql, params); }
+
+function persist() {
+  const data = sqldb.export();
+  idbSave(data).catch(e => console.error('DB persist error:', e));
+}
+
+// ── SCHEMA ───────────────────────────────────────────────
+const SCHEMA = `
+  CREATE TABLE IF NOT EXISTS config (
+    key   TEXT PRIMARY KEY,
+    value TEXT
+  );
+  CREATE TABLE IF NOT EXISTS pasillos (
+    id     TEXT PRIMARY KEY,
+    numero INTEGER NOT NULL,
+    nombre TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS articulos (
+    id         TEXT PRIMARY KEY,
+    pasillo_id TEXT NOT NULL REFERENCES pasillos(id),
+    nombre     TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS lista (
+    id         TEXT PRIMARY KEY,
+    nombre     TEXT NOT NULL,
+    pasillo_id TEXT REFERENCES pasillos(id),
+    checked    INTEGER NOT NULL DEFAULT 0,
+    posicion   INTEGER NOT NULL DEFAULT 0
+  );
+`;
+
+// ── DATA: CONFIG ─────────────────────────────────────────
+function getCfg(key) { return q1('SELECT value FROM config WHERE key=?', [key])?.value || ''; }
+function setCfg(key, value) { run('INSERT OR REPLACE INTO config(key,value) VALUES(?,?)', [key, value]); persist(); }
+
+// ── DATA: PASILLOS ───────────────────────────────────────
+function allPasillos() {
+  const ps = q('SELECT * FROM pasillos ORDER BY numero ASC');
+  ps.forEach(p => { p.articulos = q('SELECT * FROM articulos WHERE pasillo_id=? ORDER BY nombre ASC', [p.id]); });
+  return ps;
+}
+
+function addPasillo(numero, nombre) {
+  const id = uid();
+  run('INSERT INTO pasillos(id,numero,nombre) VALUES(?,?,?)', [id, numero, nombre]);
+  persist(); return id;
+}
+
+function updatePasillo(id, numero, nombre) {
+  run('UPDATE pasillos SET numero=?,nombre=? WHERE id=?', [numero, nombre, id]);
+  persist();
+}
+
+function deletePasillo(id) {
+  run('DELETE FROM articulos WHERE pasillo_id=?', [id]);
+  run('UPDATE lista SET pasillo_id=NULL WHERE pasillo_id=?', [id]);
+  run('DELETE FROM pasillos WHERE id=?', [id]);
+  persist();
+}
+
+// ── DATA: ARTICULOS ──────────────────────────────────────
+function addArticulo(pasilloId, nombre) {
+  const id = uid();
+  run('INSERT INTO articulos(id,pasillo_id,nombre) VALUES(?,?,?)', [id, pasilloId, nombre]);
+  persist(); return id;
+}
+
+function updateArticulo(id, nombre) {
+  run('UPDATE articulos SET nombre=? WHERE id=?', [nombre, id]);
+  persist();
+}
+
+function deleteArticulo(id) {
+  run('DELETE FROM articulos WHERE id=?', [id]);
+  persist();
+}
+
+function articuloExiste(pasilloId, nombre) {
+  return !!q1('SELECT 1 FROM articulos WHERE pasillo_id=? AND lower(nombre)=lower(?)', [pasilloId, nombre]);
+}
+
+// ── DATA: LISTA ──────────────────────────────────────────
+function loadLista() {
+  return q(`
+    SELECT l.id, l.nombre, l.checked, l.pasillo_id AS pId,
+           p.numero AS pNum, p.nombre AS pNom
+    FROM lista l
+    LEFT JOIN pasillos p ON l.pasillo_id = p.id
+    ORDER BY COALESCE(p.numero, 99999), l.posicion ASC, l.rowid ASC
+  `).map(r => ({ ...r, checked: !!r.checked, pNum: r.pNum || null }));
+}
+
+function saveLista(items) {
+  run('DELETE FROM lista');
+  const stmt = sqldb.prepare('INSERT INTO lista(id,nombre,pasillo_id,checked,posicion) VALUES(?,?,?,?,?)');
+  items.forEach((it, i) => stmt.run([it.id, it.nombre, it.pId || null, it.checked ? 1 : 0, i]));
+  stmt.free();
+  persist();
+}
+
+function toggleDb(id, val) {
+  run('UPDATE lista SET checked=? WHERE id=?', [val ? 1 : 0, id]);
+  persist();
+}
+
+function assignPasilloInLista(listaId, pasilloId) {
+  run('UPDATE lista SET pasillo_id=? WHERE id=?', [pasilloId, listaId]);
+  persist();
+}
+
+// ── UTILS ────────────────────────────────────────────────
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function norm(s) {
+  return String(s).toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function showLoading(on) { document.getElementById('loading').classList.toggle('show', on); }
+
+// ── TAB NAV ──────────────────────────────────────────────
+function goTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('on');
+  if (name === 'pasillos') renderPasillos();
+  if (name === 'ajustes') renderSettings();
+}
+
+// ── PHOTO ────────────────────────────────────────────────
+let photoData = null;
+let lista = [];
+
+document.getElementById('fileIn').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    photoData = ev.target.result;
+    document.getElementById('photoPrev').src = photoData;
+    document.getElementById('photoPrev').classList.add('show');
+    document.getElementById('photoPh').style.display = 'none';
+    document.getElementById('photoActions').style.display = 'grid';
+  };
+  r.readAsDataURL(f);
+  e.target.value = '';
+});
+
+async function analyzePhoto() {
+  const key = getCfg('api_key');
+  if (!key) { toast('⚠️ Configura tu API Key en Ajustes'); goTab('ajustes'); return; }
+  if (!photoData) { toast('Primero selecciona una foto'); return; }
+  const ps = allPasillos();
+  if (!ps.length) { toast('Añade pasillos primero en la pestaña Pasillos'); return; }
+
+  showLoading(true);
+  try {
+    const b64 = photoData.split(',')[1];
+    const mime = photoData.split(';')[0].split(':')[1];
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [
+            { inlineData: { mimeType: mime, data: b64 } },
+            { text: `Esta imagen contiene una lista de la compra escrita a mano.\nExtrae todos los artículos que aparecen en la lista.\nResponde ÚNICAMENTE con JSON válido, sin texto adicional:\n{"articulos":["artículo 1","artículo 2"]}\nNormaliza los nombres: singular, minúsculas, sin cantidades ni unidades de medida.` }
+          ]}],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 800 }
+        })
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const match = raw.match(/\{[\s\S]*?\}/);
+    if (!match) throw new Error('Respuesta inesperada de Gemini');
+    const items = JSON.parse(match[0]).articulos?.filter(Boolean) || [];
+
+    if (!items.length) { toast('No se detectaron artículos'); return; }
+
+    lista = matchCatalog(items, ps);
+    saveLista(lista);
+    renderLista();
+    toast(`✓ ${items.length} artículo${items.length !== 1 ? 's' : ''} detectado${items.length !== 1 ? 's' : ''}`);
+  } catch (e) {
+    console.error(e);
+    toast('Error: ' + e.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ── MATCHING ─────────────────────────────────────────────
+function matchCatalog(items, pasillos) {
+  const catalog = [];
+  pasillos.forEach(p => {
+    (p.articulos || []).forEach(a => {
+      catalog.push({ norm: norm(a.nombre), pId: p.id, pNum: p.numero, pNom: p.nombre });
+    });
+  });
+
+  return items.map((nombre, i) => {
+    const n = norm(nombre);
+    let best = null, bestScore = 0;
+    for (const c of catalog) {
+      const s = matchScore(n, c.norm);
+      if (s > bestScore && s >= 0.5) { bestScore = s; best = c; }
+    }
+    return { id: uid(), nombre, checked: false, pId: best?.pId || null, pNum: best?.pNum || null, pNom: best?.pNom || null, posicion: i };
+  });
+}
+
+function matchScore(a, b) {
+  if (a === b) return 1;
+  if (a.includes(b) || b.includes(a)) return 0.85;
+  const wa = a.split(' '), wb = b.split(' ');
+  const hit = wa.filter(w => w.length > 2 && wb.includes(w)).length;
+  return hit ? hit / Math.max(wa.length, wb.length) : 0;
+}
+
+// ── RENDER LISTA ─────────────────────────────────────────
+function renderLista() {
+  const el = document.getElementById('listaContent');
+  const wrap = document.getElementById('classifyWrap');
+  document.getElementById('clearBtn').style.display = lista.length ? '' : 'none';
+
+  if (!lista.length) {
+    wrap.style.display = 'none';
+    el.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      <p>Fotografía tu lista de la compra<br>para empezar</p>
+    </div>`;
+    return;
+  }
+
+  const byP = {}, unclass = [];
+  lista.forEach(it => {
+    if (it.pId) {
+      if (!byP[it.pId]) byP[it.pId] = { num: it.pNum, nom: it.pNom, items: [] };
+      byP[it.pId].items.push(it);
+    } else { unclass.push(it); }
+  });
+
+  let html = Object.values(byP).sort((a, b) => a.num - b.num).map(g => `
+    <div class="sec">
+      <div class="sec-hdr">
+        <span class="badge badge-g">Pasillo ${g.num}</span>
+        <span class="sec-name">${esc(g.nom)}</span>
+      </div>
+      <div class="card">${g.items.map(itemHtml).join('')}</div>
+    </div>`).join('');
+
+  if (unclass.length) {
+    html += `<div class="sec">
+      <div class="sec-hdr"><span class="badge badge-a">Sin clasificar</span></div>
+      <div class="card">${unclass.map(itemHtml).join('')}</div>
+    </div>`;
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+  }
+
+  el.innerHTML = html;
+}
+
+function itemHtml(it) {
+  return `<div class="s-item${it.checked ? ' done' : ''}" id="si-${it.id}" onclick="toggleItem('${it.id}')">
+    <div class="chk${it.checked ? ' on' : ''}">${it.checked ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>
+    <span class="s-name">${esc(it.nombre)}</span>
+  </div>`;
+}
+
+function toggleItem(id) {
+  const it = lista.find(i => i.id === id);
+  if (!it) return;
+  it.checked = !it.checked;
+  toggleDb(id, it.checked);
+  // Update DOM directly (no full re-render)
+  const el = document.getElementById('si-' + id);
+  if (el) {
+    el.classList.toggle('done', it.checked);
+    el.querySelector('.chk').className = 'chk' + (it.checked ? ' on' : '');
+    el.querySelector('.chk').innerHTML = it.checked
+      ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+    el.querySelector('.s-name').style.textDecoration = it.checked ? 'line-through' : '';
+  }
+}
+
+function clearLista() {
+  if (!confirm('¿Limpiar la lista actual?')) return;
+  run('DELETE FROM lista'); persist();
+  lista = [];
+  photoData = null;
+  document.getElementById('photoPrev').classList.remove('show');
+  document.getElementById('photoPh').style.display = '';
+  document.getElementById('photoActions').style.display = 'none';
+  renderLista();
+  toast('Lista limpiada');
+}
+
+// ── CLASSIFY ─────────────────────────────────────────────
+let clQueue = [], clIdx = 0;
+
+function startClassify() {
+  const ps = allPasillos();
+  if (!ps.length) { toast('Primero añade pasillos'); return; }
+  clQueue = lista.filter(i => !i.pId);
+  clIdx = 0;
+  showClassify(ps);
+}
+
+function showClassify(ps) {
+  ps = ps || allPasillos();
+  if (clIdx >= clQueue.length) {
+    document.getElementById('classifyOverlay').classList.remove('show');
+    lista = loadLista();
+    renderLista();
+    toast('¡Clasificación completada ✓');
+    return;
+  }
+  const it = clQueue[clIdx];
+  document.getElementById('clProg').textContent = `Artículo ${clIdx + 1} de ${clQueue.length}`;
+  document.getElementById('clName').textContent = it.nombre;
+  document.getElementById('clSelect').innerHTML = ps.sort((a, b) => a.numero - b.numero).map(p =>
+    `<option value="${p.id}">Pasillo ${p.numero} – ${esc(p.nombre)}</option>`).join('');
+  document.getElementById('classifyOverlay').classList.add('show');
+}
+
+function skipClassify() { clIdx++; showClassify(); }
+
+function doClassify() {
+  const pId = document.getElementById('clSelect').value;
+  if (!pId) return;
+  const ps = allPasillos();
+  const pasillo = ps.find(p => p.id === pId);
+  if (!pasillo) return;
+
+  const it = clQueue[clIdx];
+  assignPasilloInLista(it.id, pId);
+
+  // Learn: add to catalog
+  if (!articuloExiste(pId, it.nombre)) {
+    addArticulo(pId, it.nombre);
+  }
+
+  clIdx++;
+  showClassify(ps);
+}
+
+// ── PASILLOS UI ──────────────────────────────────────────
+let editPasilloId = null;
+
+function renderPasillos() {
+  const ps = allPasillos();
+  const el = document.getElementById('pasillosList');
+  if (!ps.length) {
+    el.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <p>Sin pasillos todavía.<br>Pulsa "Añadir pasillo" para empezar.</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = ps.map(p => pasilloCard(p)).join('');
+}
+
+function pasilloCard(p) {
+  const arts = p.articulos || [];
+  return `<div class="p-card" id="pc-${p.id}">
+  <div class="p-hdr" onclick="toggleP('${p.id}')">
+    <div class="p-num">${p.numero}</div>
+    <div class="p-info">
+      <div class="p-title">${esc(p.nombre)}</div>
+      <div class="p-count">${arts.length} artículo${arts.length !== 1 ? 's' : ''}</div>
+    </div>
+    <svg class="chevron" id="ch-${p.id}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="p-body" id="pb-${p.id}">
+    ${arts.map(a => `
+    <div class="p-item" id="pai-${a.id}">
+      <span class="p-item-name">${esc(a.nombre)}</span>
+      <div class="p-item-acts">
+        <button class="icon-btn" onclick="editArt('${p.id}','${a.id}','${esc(a.nombre)}')" title="Editar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="icon-btn" onclick="delArt('${a.id}','${p.id}')" title="Eliminar" style="color:var(--red)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+        </button>
+      </div>
+    </div>`).join('')}
+    <div class="p-footer" id="pf-${p.id}">
+      <button class="btn btn-s btn-w" onclick="showAddArt('${p.id}')">+ Añadir artículo</button>
+    </div>
+    <div class="p-manage">
+      <button class="btn btn-s" style="flex:1" onclick="openEditPasillo('${p.id}')">✏️ Editar</button>
+      <button class="btn btn-r" onclick="delPasillo('${p.id}')">🗑️</button>
+    </div>
+  </div>
+</div>`;
+}
+
+function toggleP(id) {
+  document.getElementById('pb-' + id)?.classList.toggle('open');
+  document.getElementById('ch-' + id)?.classList.toggle('open');
+}
+
+function openPasilloModal() {
+  editPasilloId = null;
+  document.getElementById('pasilloModalTitle').textContent = 'Añadir pasillo';
+  document.getElementById('pNum').value = '';
+  document.getElementById('pName').value = '';
+  document.getElementById('pasilloOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('pNum').focus(), 120);
+}
+
+function openEditPasillo(id) {
+  const p = q1('SELECT * FROM pasillos WHERE id=?', [id]);
+  if (!p) return;
+  editPasilloId = id;
+  document.getElementById('pasilloModalTitle').textContent = 'Editar pasillo';
+  document.getElementById('pNum').value = p.numero;
+  document.getElementById('pName').value = p.nombre;
+  document.getElementById('pasilloOverlay').classList.add('show');
+}
+
+function closePasilloModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('pasilloOverlay').classList.remove('show');
+}
+
+function savePasillo() {
+  const num = parseInt(document.getElementById('pNum').value);
+  const nombre = document.getElementById('pName').value.trim();
+  if (!num || !nombre) { toast('Completa todos los campos'); return; }
+  if (editPasilloId) updatePasillo(editPasilloId, num, nombre);
+  else addPasillo(num, nombre);
+  closePasilloModal();
+  renderPasillos();
+  toast(editPasilloId ? 'Pasillo actualizado ✓' : 'Pasillo añadido ✓');
+}
+
+function delPasillo(id) {
+  if (!confirm('¿Eliminar este pasillo y todos sus artículos?')) return;
+  deletePasillo(id);
+  renderPasillos();
+  toast('Pasillo eliminado');
+}
+
+function showAddArt(pId) {
+  const footer = document.getElementById('pf-' + pId);
+  footer.innerHTML = `<div class="inline-row">
+    <input type="text" id="newArt-${pId}" placeholder="Nombre del artículo">
+    <button class="btn btn-p" onclick="commitAddArt('${pId}')">OK</button>
+    <button class="btn btn-s" onclick="renderPasillos();toggleP('${pId}')">✕</button>
+  </div>`;
+  const inp = document.getElementById('newArt-' + pId);
+  inp?.focus();
+  inp?.addEventListener('keypress', e => { if (e.key === 'Enter') commitAddArt(pId); });
+}
+
+function commitAddArt(pId) {
+  const nombre = (document.getElementById('newArt-' + pId)?.value || '').trim();
+  if (!nombre) { toast('Introduce un nombre'); return; }
+  addArticulo(pId, nombre);
+  renderPasillos();
+  const pb = document.getElementById('pb-' + pId);
+  pb?.classList.add('open');
+  document.getElementById('ch-' + pId)?.classList.add('open');
+  toast('Artículo añadido ✓');
+}
+
+function editArt(pId, aId, currentNombre) {
+  const el = document.getElementById('pai-' + aId);
+  if (!el) return;
+  el.innerHTML = `<div class="inline-row" style="padding:0;width:100%">
+    <input type="text" id="ea-${aId}" value="${esc(currentNombre)}">
+    <button class="btn btn-p" onclick="commitEditArt('${pId}','${aId}')">OK</button>
+    <button class="btn btn-s" onclick="renderPasillos();toggleP('${pId}')">✕</button>
+  </div>`;
+  const inp = document.getElementById('ea-' + aId);
+  inp?.focus(); inp?.select();
+  inp?.addEventListener('keypress', e => { if (e.key === 'Enter') commitEditArt(pId, aId); });
+}
+
+function commitEditArt(pId, aId) {
+  const nombre = (document.getElementById('ea-' + aId)?.value || '').trim();
+  if (!nombre) return;
+  updateArticulo(aId, nombre);
+  renderPasillos();
+  document.getElementById('pb-' + pId)?.classList.add('open');
+  document.getElementById('ch-' + pId)?.classList.add('open');
+}
+
+function delArt(aId, pId) {
+  deleteArticulo(aId);
+  renderPasillos();
+  document.getElementById('pb-' + pId)?.classList.add('open');
+  document.getElementById('ch-' + pId)?.classList.add('open');
+}
+
+// ── SETTINGS ─────────────────────────────────────────────
+function renderSettings() {
+  document.getElementById('apiIn').value = getCfg('api_key');
+  const ps = q('SELECT COUNT(*) AS n FROM pasillos')[0]?.n || 0;
+  const arts = q('SELECT COUNT(*) AS n FROM articulos')[0]?.n || 0;
+  const lis = q('SELECT COUNT(*) AS n FROM lista')[0]?.n || 0;
+  document.getElementById('dbStat').textContent =
+    `${ps} pasillo${ps !== 1 ? 's' : ''} · ${arts} artículo${arts !== 1 ? 's' : ''} en catálogo · ${lis} en lista actual`;
+}
+
+function saveKey() {
+  setCfg('api_key', document.getElementById('apiIn').value.trim());
+  toast('API Key guardada ✓');
+}
+
+function exportDB() {
+  const data = sqldb.export();
+  const blob = new Blob([data], { type: 'application/octet-stream' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `pasillitos-backup-${new Date().toISOString().slice(0,10)}.sqlite`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Copia de seguridad exportada ✓');
+}
+
+function clearAll() {
+  if (!confirm('¿Borrar todos los datos? Esta acción no se puede deshacer.')) return;
+  sqldb.exec('DELETE FROM lista; DELETE FROM articulos; DELETE FROM pasillos; DELETE FROM config;');
+  persist();
+  lista = [];
+  photoData = null;
+  document.getElementById('photoPrev').classList.remove('show');
+  document.getElementById('photoPh').style.display = '';
+  document.getElementById('photoActions').style.display = 'none';
+  renderLista();
+  renderSettings();
+  toast('Datos eliminados');
+}
+
+// ── KEYBOARD ─────────────────────────────────────────────
+document.getElementById('pNum').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('pName').focus(); });
+document.getElementById('pName').addEventListener('keypress', e => { if (e.key === 'Enter') savePasillo(); });
+
+// ── INIT ─────────────────────────────────────────────────
+async function initApp() {
+  const msg = document.getElementById('initMsg');
+  try {
+    msg.textContent = 'Cargando motor SQLite...';
+    const SQL = await initSqlJs({
+      locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/${f}`
+    });
+
+    msg.textContent = 'Leyendo base de datos...';
+    const saved = await idbLoad();
+
+    if (saved) {
+      const arr = saved instanceof Uint8Array ? saved : new Uint8Array(saved);
+      sqldb = new SQL.Database(arr);
+    } else {
+      sqldb = new SQL.Database();
+    }
+
+    sqldb.exec(SCHEMA);
+    if (!saved) persist();
+
+    lista = loadLista();
+    document.getElementById('initScreen').classList.add('hidden');
+    renderLista();
+  } catch (e) {
+    console.error(e);
+    document.getElementById('initScreen').innerHTML = `
+      <div class="err">
+        <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+        <p><strong>Error al iniciar</strong></p>
+        <p style="margin-top:8px">${esc(e.message)}</p>
+        <p style="margin-top:12px;font-size:13px">Verifica tu conexión a internet y recarga la página</p>
+      </div>`;
+  }
+}
+
+initApp();
+</script>
+</body>
+</html>
