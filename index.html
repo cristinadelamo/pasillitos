@@ -101,7 +101,10 @@
     /* ── PASILLOS TAB ── */
     .p-actions{padding:14px 16px 2px}
     .p-card{margin:10px 16px;background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.09);overflow:hidden}
+    .p-card.sortable-ghost{opacity:.4}
     .p-hdr{display:flex;align-items:center;padding:14px 16px;cursor:pointer;user-select:none;gap:12px}
+    .drag-handle{color:#ccc;cursor:grab;padding:4px;flex-shrink:0;touch-action:none}
+    .drag-handle:active{cursor:grabbing;color:#999}
     .p-num{background:var(--green);color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
     .p-info{flex:1;min-width:0}
     .p-title{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -336,6 +339,7 @@
 
 <!-- sql.js from CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/sql-wasm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 <script>
 'use strict';
 
@@ -877,12 +881,29 @@ function renderPasillos() {
     return;
   }
   el.innerHTML = ps.map(p => pasilloCard(p)).join('');
+
+  Sortable.create(el, {
+    handle: '.drag-handle',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    onEnd() {
+      const ids = [...el.querySelectorAll('.p-card')].map(c => c.id.replace('pc-', ''));
+      ids.forEach((id, i) => run('UPDATE pasillos SET numero=? WHERE id=?', [i + 1, id]));
+      persist();
+      lista = loadLista();
+      renderLista();
+      renderPasillos();
+    }
+  });
 }
 
 function pasilloCard(p) {
   const arts = p.articulos || [];
   return `<div class="p-card" id="pc-${p.id}">
   <div class="p-hdr" onclick="toggleP('${p.id}')">
+    <div class="drag-handle" onclick="event.stopPropagation()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+    </div>
     <div class="p-num">${p.numero}</div>
     <div class="p-info">
       <div class="p-title">${esc(p.nombre)}</div>
