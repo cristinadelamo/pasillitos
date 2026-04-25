@@ -53,13 +53,16 @@
 
     /* ── LISTA TAB ── */
     .photo-area{padding:14px 16px 0;display:flex;flex-direction:column;gap:10px}
-    .photo-ph{border:2px dashed var(--border);border-radius:14px;height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--sub);cursor:pointer;background:#fff;transition:border-color .2s}
-    .photo-ph:active{border-color:var(--green)}
-    .photo-ph svg{width:36px;height:36px;opacity:.4}
-    .photo-ph span{font-size:14px;font-weight:500}
-    .photo-prev{width:100%;max-height:200px;object-fit:cover;border-radius:14px;display:none}
+    .photo-ph{border:2px dashed var(--border);border-radius:14px;height:130px;display:flex;flex-direction:row;background:#fff;overflow:hidden}
+    .photo-src{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;color:var(--sub);cursor:pointer;transition:background .15s}
+    .photo-src:active{background:var(--bg)}
+    .photo-src svg{width:32px;height:32px;opacity:.4}
+    .photo-src span{font-size:13px;font-weight:500}
+    .photo-ph-divider{width:1px;background:var(--border);margin:16px 0}
+    .photo-prev{width:100%;max-height:220px;object-fit:contain;border-radius:14px;display:none;background:#f5f5f5}
     .photo-prev.show{display:block}
     .photo-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .photo-btns .btn-full{grid-column:1/-1}
 
     /* list */
     .sec{margin:14px 16px 0}
@@ -167,18 +170,31 @@
   <!-- LISTA -->
   <div class="panel active" id="panel-lista">
     <div class="photo-area">
-      <div class="photo-ph" id="photoPh" onclick="document.getElementById('fileIn').click()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
-          <circle cx="12" cy="13" r="4"/>
-        </svg>
-        <span>Fotografía tu lista de la compra</span>
+      <div class="photo-ph" id="photoPh">
+        <div class="photo-src" onclick="document.getElementById('fileInCam').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <span>Cámara</span>
+        </div>
+        <div class="photo-ph-divider"></div>
+        <div class="photo-src" onclick="document.getElementById('fileInGal').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+          <span>Galería / Archivo</span>
+        </div>
       </div>
       <img class="photo-prev" id="photoPrev" alt="">
-      <input type="file" id="fileIn" accept="image/*" capture="environment" style="display:none">
+      <input type="file" id="fileInCam" accept="image/*" capture="environment" style="display:none">
+      <input type="file" id="fileInGal" accept="image/*" style="display:none">
       <div id="photoActions" style="display:none" class="photo-btns">
-        <button class="btn btn-s" onclick="document.getElementById('fileIn').click()">📷 Cambiar foto</button>
-        <button class="btn btn-p" onclick="analyzePhoto()">✨ Analizar</button>
+        <button class="btn btn-s" onclick="document.getElementById('fileInCam').click()">📷 Cámara</button>
+        <button class="btn btn-s" onclick="document.getElementById('fileInGal').click()">🖼️ Galería</button>
+        <button class="btn btn-p btn-full" onclick="analyzePhoto()">✨ Analizar</button>
       </div>
     </div>
     <div id="listaContent"></div>
@@ -481,7 +497,7 @@ function goTab(name) {
 let photoData = null;
 let lista = [];
 
-document.getElementById('fileIn').addEventListener('change', e => {
+function handleFileInput(e) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
   r.onload = ev => {
@@ -501,7 +517,9 @@ document.getElementById('fileIn').addEventListener('change', e => {
   };
   r.readAsDataURL(f);
   e.target.value = '';
-});
+}
+document.getElementById('fileInCam').addEventListener('change', handleFileInput);
+document.getElementById('fileInGal').addEventListener('change', handleFileInput);
 
 async function analyzePhoto() {
   const key = getCfg('api_key');
