@@ -878,10 +878,11 @@ function exportDB() {
   const data = sqldb.export();
   const blob = new Blob([data], { type: 'application/octet-stream' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(blob);
+  a.href = url;
   a.download = `pasillitos-backup-${new Date().toISOString().slice(0,10)}.sqlite`;
   a.click();
-  URL.revokeObjectURL(a.href);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
   toast('Copia de seguridad exportada ✓');
 }
 
