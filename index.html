@@ -270,7 +270,6 @@
         <button class="btn btn-s btn-w" onclick="exportCatalog()" style="margin-bottom:8px">⬇️ Exportar catálogo JSON</button>
         <button class="btn btn-s btn-w" onclick="document.getElementById('importCatalogFile').click()">⬆️ Importar catálogo JSON</button>
         <input type="file" id="importCatalogFile" accept=".json" style="display:none" onchange="importCatalog(this)">
-        <p style="margin-top:8px;font-size:12px;color:var(--sub)">Se guarda una copia automática en el navegador cada vez que modificas el catálogo.</p>
       </div>
       <div class="s-sec">
         <h2>📊 Base de datos</h2>
@@ -938,15 +937,8 @@ function importCatalog(input) {
   reader.readAsText(file);
 }
 
-function backupCatalog(ps) {
-  try {
-    localStorage.setItem('pasillitos_catalog_backup', JSON.stringify(catalogToJson(ps)));
-  } catch (e) {}
-}
-
 function renderPasillos() {
   const ps = allPasillos();
-  backupCatalog(ps);
   const el = document.getElementById('pasillosList');
   if (!ps.length) {
     el.innerHTML = `<div class="empty">
@@ -1125,7 +1117,6 @@ function renderSettings() {
 function saveKey() {
   const key = document.getElementById('apiIn').value.trim();
   setCfg('api_key', key);
-  try { localStorage.setItem('pasillitos_apikey_backup', JSON.stringify({ key, savedAt: new Date().toISOString() })); } catch (e) {}
   toast('API Key guardada ✓');
 }
 
@@ -1147,7 +1138,6 @@ function importApiKey(input) {
       if (!data.key) throw new Error('Formato inválido');
       setCfg('api_key', data.key);
       document.getElementById('apiIn').value = data.key;
-      try { localStorage.setItem('pasillitos_apikey_backup', JSON.stringify({ key: data.key, savedAt: new Date().toISOString() })); } catch (ex) {}
       toast('API Key importada ✓');
     } catch (err) { toast('Error: ' + err.message); }
     input.value = '';
