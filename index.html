@@ -261,6 +261,13 @@
         <p>Obtén tu clave en <strong>console.anthropic.com</strong>. Se guarda solo en este dispositivo.</p>
       </div>
       <div class="s-sec">
+        <h2>📋 Catálogo de pasillos</h2>
+        <button class="btn btn-s btn-w" onclick="exportCatalog()" style="margin-bottom:8px">⬇️ Exportar catálogo JSON</button>
+        <button class="btn btn-s btn-w" onclick="document.getElementById('importCatalogFile').click()">⬆️ Importar catálogo JSON</button>
+        <input type="file" id="importCatalogFile" accept=".json" style="display:none" onchange="importCatalog(this)">
+        <p style="margin-top:8px;font-size:12px;color:var(--sub)">Se guarda una copia automática en el navegador cada vez que modificas el catálogo.</p>
+      </div>
+      <div class="s-sec">
         <h2>📊 Base de datos</h2>
         <p class="s-stat" id="dbStat"></p>
         <button class="btn btn-s btn-w" onclick="exportDB()" style="margin-bottom:8px">⬇️ Exportar copia de seguridad</button>
@@ -876,8 +883,65 @@ function doClassify() {
 // ── PASILLOS UI ──────────────────────────────────────────
 let editPasilloId = null;
 
+// ── CATALOG EXPORT / IMPORT / BACKUP ─────────────────────
+function catalogToJson(ps) {
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    pasillos: ps.map(p => ({
+      numero: p.numero,
+      nombre: p.nombre,
+      articulos: (p.articulos || []).map(a => a.nombre)
+    }))
+  };
+}
+
+function exportCatalog() {
+  const data = catalogToJson(allPasillos());
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'catalogo.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function importCatalog(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data.pasillos)) throw new Error('Formato inválido');
+      if (!confirm(`¿Importar catálogo con ${data.pasillos.length} pasillos? Esto reemplazará el catálogo actual.`)) { input.value = ''; return; }
+      run('DELETE FROM articulos');
+      run('DELETE FROM pasillos');
+      data.pasillos.forEach(p => {
+        const pId = uid();
+        run('INSERT INTO pasillos(id,numero,nombre) VALUES(?,?,?)', [pId, p.numero || 0, p.nombre]);
+        (p.articulos || []).forEach(nombre => {
+          run('INSERT INTO articulos(id,pasillo_id,nombre) VALUES(?,?,?)', [uid(), pId, nombre]);
+        });
+      });
+      persist();
+      lista = loadLista();
+      renderLista();
+      renderPasillos();
+      toast('Catálogo importado ✓');
+    } catch (err) { toast('Error: ' + err.message); }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function backupCatalog(ps) {
+  try {
+    localStorage.setItem('pasillitos_catalog_backup', JSON.stringify(catalogToJson(ps)));
+  } catch (e) {}
+}
+
 function renderPasillos() {
   const ps = allPasillos();
+  backupCatalog(ps);
   const el = document.getElementById('pasillosList');
   if (!ps.length) {
     el.innerHTML = `<div class="empty">
