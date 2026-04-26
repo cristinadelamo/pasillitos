@@ -257,7 +257,12 @@
       <div class="s-sec">
         <h2>🔑 API Key de Anthropic</h2>
         <input class="api-in" type="password" id="apiIn" placeholder="sk-ant-...">
-        <button class="btn btn-p btn-w" onclick="saveKey()">Guardar</button>
+        <button class="btn btn-p btn-w" onclick="saveKey()" style="margin-bottom:8px">Guardar</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <button class="btn btn-s" onclick="exportApiKey()">⬇️ Exportar</button>
+          <button class="btn btn-s" onclick="document.getElementById('importApiKeyFile').click()">⬆️ Importar</button>
+        </div>
+        <input type="file" id="importApiKeyFile" accept=".json" style="display:none" onchange="importApiKey(this)">
         <p>Obtén tu clave en <strong>console.anthropic.com</strong>. Se guarda solo en este dispositivo.</p>
       </div>
       <div class="s-sec">
@@ -1118,8 +1123,36 @@ function renderSettings() {
 }
 
 function saveKey() {
-  setCfg('api_key', document.getElementById('apiIn').value.trim());
+  const key = document.getElementById('apiIn').value.trim();
+  setCfg('api_key', key);
+  try { localStorage.setItem('pasillitos_apikey_backup', JSON.stringify({ key, savedAt: new Date().toISOString() })); } catch (e) {}
   toast('API Key guardada ✓');
+}
+
+function exportApiKey() {
+  const key = getCfg('api_key');
+  if (!key) { toast('No hay API Key guardada'); return; }
+  const blob = new Blob([JSON.stringify({ key, savedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'apikey.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function importApiKey(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.key) throw new Error('Formato inválido');
+      setCfg('api_key', data.key);
+      document.getElementById('apiIn').value = data.key;
+      try { localStorage.setItem('pasillitos_apikey_backup', JSON.stringify({ key: data.key, savedAt: new Date().toISOString() })); } catch (ex) {}
+      toast('API Key importada ✓');
+    } catch (err) { toast('Error: ' + err.message); }
+    input.value = '';
+  };
+  reader.readAsText(file);
 }
 
 function exportDB() {

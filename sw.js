@@ -1,4 +1,4 @@
-const CACHE = 'pasillitos-v1';
+const CACHE = 'pasillitos-v2';
 const PRECACHE = [
   './',
   './index.html',
@@ -8,13 +8,15 @@ const PRECACHE = [
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE)
-      .then(c => c.addAll(PRECACHE))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => c.addAll(PRECACHE))
+    // Sin skipWaiting: el nuevo SW espera a que todas las pestañas
+    // estén cerradas antes de activarse, evitando interrumpir
+    // la inicialización de sql.js en mitad de una sesión.
   );
 });
 
 self.addEventListener('activate', e => {
+  // Solo elimina cachés de versiones anteriores. No toca IndexedDB.
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
@@ -29,11 +31,9 @@ self.addEventListener('fetch', e => {
 
   const { hostname } = new URL(e.request.url);
 
-  // API calls siempre van a red
-  if (hostname === 'api.anthropic.com') return;
+  // Llamadas a la API siempre van a red, nunca a caché
+  if (hostname === 'api.anthropic.com' || hostname === 'generativelanguage.googleapis.com') return;
 
-  // Cache-first: devuelve el recurso cacheado si existe,
-  // si no lo descarga, lo guarda y lo devuelve
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
