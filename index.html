@@ -937,8 +937,13 @@ function importCatalog(input) {
   reader.readAsText(file);
 }
 
+function backupCatalog(ps) {
+  try { localStorage.setItem('pasillitos_catalog_backup', JSON.stringify(catalogToJson(ps))); } catch (e) {}
+}
+
 function renderPasillos() {
   const ps = allPasillos();
+  backupCatalog(ps);
   const el = document.getElementById('pasillosList');
   if (!ps.length) {
     el.innerHTML = `<div class="empty">
@@ -1223,6 +1228,8 @@ async function initApp() {
 
     sqldb.exec(SCHEMA);
     if (!saved) persist();
+
+    if (navigator.storage?.persist) navigator.storage.persist();
 
     lista = loadLista();
     document.getElementById('initScreen').classList.add('hidden');
