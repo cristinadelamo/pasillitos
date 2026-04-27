@@ -737,8 +737,7 @@ function renderLista() {
   const wrap = document.getElementById('classifyWrap');
   document.getElementById('clearBtn').style.display = lista.length ? '' : 'none';
   const countEl = document.getElementById('listaCount');
-  const pending = lista.filter(i => !i.checked).length;
-  if (lista.length) { countEl.textContent = `${pending}/${lista.length}`; countEl.style.display = ''; }
+  if (lista.length) { countEl.textContent = lista.length; countEl.style.display = ''; }
   else { countEl.style.display = 'none'; }
 
   if (!lista.length) {
