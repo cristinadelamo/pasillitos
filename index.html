@@ -268,8 +268,9 @@
       <div class="s-sec">
         <h2>📋 Catálogo de pasillos</h2>
         <button class="btn btn-s btn-w" onclick="exportCatalog()" style="margin-bottom:8px">⬇️ Exportar catálogo JSON</button>
-        <button class="btn btn-s btn-w" onclick="document.getElementById('importCatalogFile').click()">⬆️ Importar catálogo JSON</button>
+        <button class="btn btn-s btn-w" onclick="document.getElementById('importCatalogFile').click()" style="margin-bottom:8px">⬆️ Importar catálogo JSON</button>
         <input type="file" id="importCatalogFile" accept=".json" style="display:none" onchange="importCatalog(this)">
+        <button class="btn btn-s btn-w" onclick="checkLocalBackup()">🔍 Buscar backup de emergencia</button>
       </div>
       <div class="s-sec">
         <h2>📊 Base de datos</h2>
@@ -907,6 +908,32 @@ function exportCatalog() {
   const a = document.createElement('a');
   a.href = url; a.download = 'catalogo.json'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function checkLocalBackup() {
+  try {
+    const raw = localStorage.getItem('pasillitos_catalog_backup');
+    if (!raw) { toast('No hay backup de emergencia guardado'); return; }
+    const data = JSON.parse(raw);
+    const ps = data.pasillos || [];
+    const arts = ps.reduce((n, p) => n + (p.articulos?.length || 0), 0);
+    const fecha = data.savedAt ? new Date(data.savedAt).toLocaleString('es-ES') : 'fecha desconocida';
+    if (!confirm(`Backup encontrado:\n${ps.length} pasillos, ${arts} artículos\nGuardado: ${fecha}\n\n¿Restaurar este backup?`)) return;
+    run('DELETE FROM articulos');
+    run('DELETE FROM pasillos');
+    ps.forEach(p => {
+      const pId = uid();
+      run('INSERT INTO pasillos(id,numero,nombre) VALUES(?,?,?)', [pId, p.numero || 0, p.nombre]);
+      (p.articulos || []).forEach(nombre => {
+        run('INSERT INTO articulos(id,pasillo_id,nombre) VALUES(?,?,?)', [uid(), pId, nombre]);
+      });
+    });
+    persist();
+    lista = loadLista();
+    renderLista();
+    renderPasillos();
+    toast(`Catálogo restaurado: ${ps.length} pasillos ✓`);
+  } catch (e) { toast('Error: ' + e.message); }
 }
 
 function importCatalog(input) {
