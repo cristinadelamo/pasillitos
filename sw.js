@@ -1,17 +1,14 @@
-const CACHE = 'pasillitos-v2';
+const CACHE = 'pasillitos-v3';
 const PRECACHE = [
-  './',
-  './index.html',
   './manifest.json',
   './icons/icon.svg',
 ];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(PRECACHE))
-    // Sin skipWaiting: el nuevo SW espera a que todas las pestañas
-    // estén cerradas antes de activarse, evitando interrumpir
-    // la inicialización de sql.js en mitad de una sesión.
+    caches.open(CACHE)
+      .then(c => c.addAll(PRECACHE))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -29,18 +26,30 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
 
-  const { hostname } = new URL(e.request.url);
+  const url = new URL(e.request.url);
 
-  // Llamadas a la API siempre van a red, nunca a caché
-  if (hostname === 'api.anthropic.com' || hostname === 'generativelanguage.googleapis.com') return;
+  // API calls siempre van a red
+  if (url.hostname === 'api.anthropic.com' || url.hostname === 'generativelanguage.googleapis.com') return;
 
+  // index.html: network-first para recibir siempre la versión más reciente
+  if (url.pathname === '/' || url.pathname.endsWith('index.html')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(response => {
+          if (response.ok) caches.open(CACHE).then(c => c.put(e.request, response.clone()));
+          return response;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Resto: cache-first (CDN libs, iconos, manifest)
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
       return fetch(e.request).then(response => {
-        if (response.ok) {
-          caches.open(CACHE).then(c => c.put(e.request, response.clone()));
-        }
+        if (response.ok) caches.open(CACHE).then(c => c.put(e.request, response.clone()));
         return response;
       });
     })
