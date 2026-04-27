@@ -32,7 +32,8 @@
     /* HEADER */
     .hdr{background:var(--green);color:#fff;height:var(--hdr);display:flex;align-items:center;padding:0 16px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.25)}
     .hdr h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
-    .hdr-actions{margin-left:auto}
+    .hdr-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+    .hdr-count{font-size:13px;opacity:.8;font-weight:500}
     .hdr-btn{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
 
     /* TABS */
@@ -184,6 +185,7 @@
 <header class="hdr">
   <h1>🛒 Pasillitos</h1>
   <div class="hdr-actions">
+    <span class="hdr-count" id="listaCount"></span>
     <button class="hdr-btn" id="clearBtn" style="display:none" onclick="clearLista()">Nueva lista</button>
   </div>
 </header>
@@ -734,6 +736,8 @@ function renderLista() {
   const el = document.getElementById('listaContent');
   const wrap = document.getElementById('classifyWrap');
   document.getElementById('clearBtn').style.display = lista.length ? '' : 'none';
+  const pending = lista.filter(i => !i.checked).length;
+  document.getElementById('listaCount').textContent = lista.length ? `${pending}/${lista.length}` : '';
 
   if (!lista.length) {
     wrap.style.display = 'none';
