@@ -100,6 +100,11 @@
     .s-name{flex:1;font-size:16px;line-height:1.3}
     .del-item{background:none;border:none;color:#ccc;font-size:22px;line-height:1;cursor:pointer;padding:0 2px;flex-shrink:0}
     .del-item:active{color:var(--red)}
+    .qty-ctrl{display:flex;align-items:center;gap:2px;flex-shrink:0}
+    .qty-btn{width:26px;height:26px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0;line-height:1}
+    .qty-btn:active{background:var(--bg)}
+    .qty-btn:disabled{opacity:.25;cursor:default}
+    .qty-val{min-width:20px;text-align:center;font-size:14px;font-weight:700;color:var(--text)}
     .classify-wrap{padding:10px 16px 0}
 
     /* empty */
@@ -114,6 +119,7 @@
     .p-hdr{display:flex;align-items:center;padding:14px 16px;cursor:pointer;user-select:none;gap:12px}
     .drag-handle{color:#ccc;cursor:grab;padding:4px;flex-shrink:0;touch-action:none}
     .drag-handle:active{cursor:grabbing;color:#999}
+    .reorder-locked .drag-handle{display:none}
     .p-num{background:var(--green);color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
     .p-info{flex:1;min-width:0}
     .p-title{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -130,6 +136,14 @@
     .p-manage{display:flex;gap:8px;padding:8px 16px 12px;background:var(--bg)}
     .inline-row{display:flex;gap:8px;align-items:center;padding:10px 16px;border-top:1px solid var(--border)}
     .inline-row input{flex:1;padding:9px 12px;border:1.5px solid var(--green);border-radius:8px;font-size:15px;outline:none}
+
+    /* ── THEME SELECTOR ── */
+    .theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+    .theme-opt{border:2px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;background:#fff;transition:border-color .15s,box-shadow .15s}
+    .theme-opt:active{opacity:.8}
+    .theme-opt.sel{box-shadow:0 0 0 1px currentColor}
+    .theme-opt-bar{height:34px}
+    .theme-opt-name{font-size:12px;font-weight:700;padding:6px 4px;text-align:center;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
     /* ── SETTINGS TAB ── */
     .settings{padding:16px;display:flex;flex-direction:column;gap:14px}
@@ -249,6 +263,7 @@
   <div class="panel" id="panel-pasillos">
     <div class="p-actions">
       <button class="btn btn-p btn-w" onclick="openPasilloModal()">+ Añadir pasillo</button>
+      <button class="btn btn-s btn-w" id="reorderBtn" onclick="toggleReorder()" style="margin-top:8px;display:none">↕️ Reordenar pasillos</button>
     </div>
     <div id="pasillosList"></div>
   </div>
@@ -256,6 +271,10 @@
   <!-- AJUSTES -->
   <div class="panel" id="panel-ajustes">
     <div class="settings">
+      <div class="s-sec">
+        <h2>🏪 Supermercado</h2>
+        <div class="theme-grid" id="themeGrid"></div>
+      </div>
       <div class="s-sec">
         <h2>🔑 API Key de Anthropic</h2>
         <input class="api-in" type="password" id="apiIn" placeholder="sk-ant-...">
@@ -440,7 +459,8 @@ const SCHEMA = `
     nombre     TEXT NOT NULL,
     pasillo_id TEXT REFERENCES pasillos(id),
     checked    INTEGER NOT NULL DEFAULT 0,
-    posicion   INTEGER NOT NULL DEFAULT 0
+    posicion   INTEGER NOT NULL DEFAULT 0,
+    cantidad   INTEGER NOT NULL DEFAULT 1
   );
 `;
 
@@ -498,18 +518,24 @@ function articuloExiste(pasilloId, nombre) {
 function loadLista() {
   return q(`
     SELECT l.id, l.nombre, l.checked, l.pasillo_id AS pId,
+           COALESCE(l.cantidad, 1) AS cantidad,
            p.numero AS pNum, p.nombre AS pNom
     FROM lista l
     LEFT JOIN pasillos p ON l.pasillo_id = p.id
     ORDER BY COALESCE(p.numero, 99999), l.posicion ASC, l.rowid ASC
-  `).map(r => ({ ...r, checked: !!r.checked, pNum: r.pNum || null }));
+  `).map(r => ({ ...r, checked: !!r.checked, pNum: r.pNum || null, cantidad: r.cantidad || 1 }));
 }
 
 function saveLista(items) {
   run('DELETE FROM lista');
-  const stmt = sqldb.prepare('INSERT INTO lista(id,nombre,pasillo_id,checked,posicion) VALUES(?,?,?,?,?)');
-  items.forEach((it, i) => stmt.run([it.id, it.nombre, it.pId || null, it.checked ? 1 : 0, i]));
+  const stmt = sqldb.prepare('INSERT INTO lista(id,nombre,pasillo_id,checked,posicion,cantidad) VALUES(?,?,?,?,?,?)');
+  items.forEach((it, i) => stmt.run([it.id, it.nombre, it.pId || null, it.checked ? 1 : 0, i, it.cantidad || 1]));
   stmt.free();
+  persist();
+}
+
+function updateCantidad(id, val) {
+  run('UPDATE lista SET cantidad=? WHERE id=?', [val, id]);
   persist();
 }
 
@@ -719,7 +745,7 @@ function matchCatalog(items, pasillos) {
       const s = matchScore(n, c.norm);
       if (s > bestScore && s >= 0.5) { bestScore = s; best = c; }
     }
-    return { id: uid(), nombre, checked: false, pId: best?.pId || null, pNum: best?.pNum || null, pNom: best?.pNom || null, posicion: i };
+    return { id: uid(), nombre, checked: false, cantidad: 1, pId: best?.pId || null, pNum: best?.pNum || null, pNom: best?.pNom || null, posicion: i };
   });
 }
 
@@ -737,7 +763,7 @@ function renderLista() {
   const wrap = document.getElementById('classifyWrap');
   document.getElementById('clearBtn').style.display = lista.length ? '' : 'none';
   const countEl = document.getElementById('listaCount');
-  if (lista.length) { countEl.textContent = lista.length; countEl.style.display = ''; }
+  if (lista.length) { const pending = lista.filter(i => !i.checked).length; countEl.textContent = pending + '/' + lista.length; countEl.style.display = ''; }
   else { countEl.style.display = 'none'; }
 
   if (!lista.length) {
@@ -782,17 +808,29 @@ function renderLista() {
 }
 
 function itemHtml(it) {
+  const qty = it.cantidad || 1;
   return `<div class="s-item${it.checked ? ' done' : ''}" id="si-${it.id}" onclick="toggleItem('${it.id}')">
     <div class="chk${it.checked ? ' on' : ''}">${it.checked ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>
     <span class="s-name">${esc(it.nombre)}</span>
+    <div class="qty-ctrl" onclick="event.stopPropagation()">
+      <button class="qty-btn" onclick="changeCantidad('${it.id}',-1)" ${qty<=1?'disabled':''}>−</button>
+      <span class="qty-val">${qty}</span>
+      <button class="qty-btn" onclick="changeCantidad('${it.id}',1)">+</button>
+    </div>
     <button class="del-item" onclick="event.stopPropagation();deleteListaItem('${it.id}')">×</button>
   </div>`;
 }
 
 function itemHtmlUnclassified(it) {
+  const qty = it.cantidad || 1;
   return `<div class="s-item${it.checked ? ' done' : ''}" id="si-${it.id}" onclick="toggleItem('${it.id}')">
     <div class="chk${it.checked ? ' on' : ''}">${it.checked ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>
     <span class="s-name">${esc(it.nombre)}</span>
+    <div class="qty-ctrl" onclick="event.stopPropagation()">
+      <button class="qty-btn" onclick="changeCantidad('${it.id}',-1)" ${qty<=1?'disabled':''}>−</button>
+      <span class="qty-val">${qty}</span>
+      <button class="qty-btn" onclick="changeCantidad('${it.id}',1)">+</button>
+    </div>
     <button class="del-item" onclick="event.stopPropagation();deleteListaItem('${it.id}')">×</button>
   </div>`;
 }
@@ -813,6 +851,20 @@ function deleteListaItem(id) {
   renderLista();
 }
 
+function changeCantidad(id, delta) {
+  const it = lista.find(i => i.id === id);
+  if (!it) return;
+  const newVal = Math.max(1, (it.cantidad || 1) + delta);
+  if (newVal === it.cantidad) return;
+  it.cantidad = newVal;
+  updateCantidad(id, newVal);
+  const el = document.getElementById('si-' + id);
+  if (el) {
+    el.querySelector('.qty-val').textContent = newVal;
+    el.querySelector('.qty-btn').disabled = newVal <= 1;
+  }
+}
+
 function toggleItem(id) {
   const it = lista.find(i => i.id === id);
   if (!it) return;
@@ -827,18 +879,22 @@ function toggleItem(id) {
       ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : '';
     el.querySelector('.s-name').style.textDecoration = it.checked ? 'line-through' : '';
   }
+  const countEl = document.getElementById('listaCount');
+  if (countEl) { const pending = lista.filter(i => !i.checked).length; countEl.textContent = pending + '/' + lista.length; }
 }
 
 function clearLista() {
-  if (!confirm('¿Limpiar la lista actual?')) return;
-  run('DELETE FROM lista'); persist();
-  lista = [];
+  const checkedCount = lista.filter(i => i.checked).length;
+  if (!checkedCount) { toast('No hay artículos tachados que eliminar'); return; }
+  if (!confirm(`¿Eliminar los ${checkedCount} artículo${checkedCount !== 1 ? 's' : ''} tachado${checkedCount !== 1 ? 's' : ''}?`)) return;
+  run('DELETE FROM lista WHERE checked=1'); persist();
+  lista = lista.filter(i => !i.checked);
   photoData = null;
   document.getElementById('photoPrev').classList.remove('show');
   document.getElementById('photoPh').style.display = '';
   document.getElementById('photoActions').style.display = 'none';
   renderLista();
-  toast('Lista limpiada');
+  toast('Artículos tachados eliminados');
 }
 
 // ── CLASSIFY ─────────────────────────────────────────────
@@ -892,6 +948,12 @@ function doClassify() {
 
 // ── PASILLOS UI ──────────────────────────────────────────
 let editPasilloId = null;
+let reorderUnlocked = false;
+
+function toggleReorder() {
+  reorderUnlocked = !reorderUnlocked;
+  renderPasillos();
+}
 
 // ── CATALOG EXPORT / IMPORT / BACKUP ─────────────────────
 function catalogToJson(ps) {
@@ -977,7 +1039,11 @@ function renderPasillos() {
   const ps = allPasillos();
   backupCatalog(ps);
   const el = document.getElementById('pasillosList');
+  const btn = document.getElementById('reorderBtn');
+
   if (!ps.length) {
+    reorderUnlocked = false;
+    btn.style.display = 'none';
     el.innerHTML = `<div class="empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
         <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
@@ -987,21 +1053,34 @@ function renderPasillos() {
     </div>`;
     return;
   }
-  el.innerHTML = ps.map(p => pasilloCard(p)).join('');
 
-  Sortable.create(el, {
-    handle: '.drag-handle',
-    animation: 150,
-    ghostClass: 'sortable-ghost',
-    onEnd() {
-      const ids = [...el.querySelectorAll('.p-card')].map(c => c.id.replace('pc-', ''));
-      ids.forEach((id, i) => run('UPDATE pasillos SET numero=? WHERE id=?', [i + 1, id]));
-      persist();
-      lista = loadLista();
-      renderLista();
-      renderPasillos();
-    }
-  });
+  if (ps.length > 1) {
+    btn.style.display = '';
+    btn.textContent = reorderUnlocked ? '🔒 Bloquear orden' : '↕️ Reordenar pasillos';
+  } else {
+    btn.style.display = 'none';
+    reorderUnlocked = false;
+  }
+
+  el.innerHTML = ps.map(p => pasilloCard(p)).join('');
+  el.classList.toggle('reorder-locked', !reorderUnlocked);
+
+  if (reorderUnlocked) {
+    Sortable.create(el, {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      onEnd() {
+        const ids = [...el.querySelectorAll('.p-card')].map(c => c.id.replace('pc-', ''));
+        ids.forEach((id, i) => run('UPDATE pasillos SET numero=? WHERE id=?', [i + 1, id]));
+        persist();
+        lista = loadLista();
+        renderLista();
+        reorderUnlocked = false;
+        renderPasillos();
+      }
+    });
+  }
 }
 
 function pasilloCard(p) {
@@ -1141,8 +1220,45 @@ function delArt(aId, pId) {
   document.getElementById('ch-' + pId)?.classList.add('open');
 }
 
+// ── THEMES ───────────────────────────────────────────────
+const THEMES = {
+  default:   { nombre: 'Genérico',   main: '#2e7d32', light: '#4caf50', dark: '#1b5e20' },
+  mercadona: { nombre: 'Mercadona',  main: '#FF6B00', light: '#FF9A4D', dark: '#CC5500' },
+  carrefour: { nombre: 'Carrefour',  main: '#004B9D', light: '#2373D8', dark: '#003070' },
+  aldi:      { nombre: 'Aldi',       main: '#00437A', light: '#1A69AE', dark: '#002B50' },
+  lidl:      { nombre: 'Lidl',       main: '#0050AA', light: '#2272CC', dark: '#003580' },
+  bm:        { nombre: 'BM',         main: '#007C3E', light: '#2DA865', dark: '#005229' },
+};
+
+function applyTheme(key) {
+  const t = THEMES[key] || THEMES.default;
+  const s = document.documentElement.style;
+  s.setProperty('--green', t.main);
+  s.setProperty('--green-l', t.light);
+  s.setProperty('--green-d', t.dark);
+}
+
+function selectTheme(key) {
+  setCfg('theme', key);
+  applyTheme(key);
+  renderThemeGrid();
+}
+
+function renderThemeGrid() {
+  const current = getCfg('theme') || 'default';
+  document.getElementById('themeGrid').innerHTML = Object.entries(THEMES).map(([key, t]) => {
+    const sel = key === current;
+    return `<div class="theme-opt${sel ? ' sel' : ''}" onclick="selectTheme('${key}')"
+      style="${sel ? `border-color:${t.main};color:${t.main}` : ''}">
+      <div class="theme-opt-bar" style="background:${t.main}"></div>
+      <div class="theme-opt-name">${t.nombre}</div>
+    </div>`;
+  }).join('');
+}
+
 // ── SETTINGS ─────────────────────────────────────────────
 function renderSettings() {
+  renderThemeGrid();
   document.getElementById('apiIn').value = getCfg('api_key');
   const ps = q('SELECT COUNT(*) AS n FROM pasillos')[0]?.n || 0;
   const arts = q('SELECT COUNT(*) AS n FROM articulos')[0]?.n || 0;
@@ -1207,6 +1323,7 @@ function importDB(input) {
       const arr = new Uint8Array(e.target.result);
       sqldb = new SQL.Database(arr);
       sqldb.exec(SCHEMA);
+      try { run('ALTER TABLE lista ADD COLUMN cantidad INTEGER NOT NULL DEFAULT 1'); } catch(e) {}
       await persist();
       lista = loadLista();
       renderLista();
@@ -1259,10 +1376,12 @@ async function initApp() {
     }
 
     sqldb.exec(SCHEMA);
+    try { run('ALTER TABLE lista ADD COLUMN cantidad INTEGER NOT NULL DEFAULT 1'); } catch(e) {}
     if (!saved) persist();
 
     if (navigator.storage?.persist) navigator.storage.persist();
 
+    applyTheme(getCfg('theme') || 'default');
     lista = loadLista();
     document.getElementById('initScreen').classList.add('hidden');
     renderLista();
