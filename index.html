@@ -6,6 +6,7 @@
   <title>Pasillitos</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2e7d32">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Compra">
@@ -13,7 +14,7 @@
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     :root{
-      --green:#2e7d32;--green-l:#4caf50;--green-d:#1b5e20;
+      --green:#2e7d32;--green-l:#4caf50;--green-d:#1b5e20;--on-green:#fff;
       --amber:#f57c00;--red:#c62828;
       --bg:#f0f2f0;--card:#fff;--text:#1a1a1a;--sub:#757575;
       --border:#e0e0e0;--tab:64px;--hdr:56px;
@@ -30,12 +31,12 @@
     #initScreen .err{text-align:center;padding:0 24px;opacity:.9;font-size:15px;line-height:1.6}
 
     /* HEADER */
-    .hdr{background:var(--green);color:#fff;height:var(--hdr);display:flex;align-items:center;padding:0 16px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+    .hdr{background:var(--green);color:var(--on-green);height:var(--hdr);display:flex;align-items:center;padding:0 16px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.25)}
     .hdr h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
     .hdr-actions{margin-left:auto}
-    .tab-count{font-size:10px;background:var(--green);color:#fff;border-radius:8px;padding:1px 5px;margin-left:3px;font-weight:700}
+    .tab-count{font-size:10px;background:var(--green);color:var(--on-green);border-radius:8px;padding:1px 5px;margin-left:3px;font-weight:700}
     .tab.on .tab-count{background:var(--green-d)}
-    .hdr-btn{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
+    .hdr-btn{background:rgba(255,255,255,.18);border:none;color:var(--on-green);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
 
     /* TABS */
     .content{flex:1;overflow:hidden;position:relative}
@@ -49,7 +50,7 @@
     /* BUTTONS */
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-radius:10px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap}
     .btn:active{opacity:.75}
-    .btn-p{background:var(--green);color:#fff}
+    .btn-p{background:var(--green);color:var(--on-green)}
     .btn-s{background:#fff;color:var(--text);border:1.5px solid var(--border)}
     .btn-r{background:var(--red);color:#fff}
     .btn-w{width:100%}
@@ -65,13 +66,13 @@
     .mic-btn{width:64px;height:64px;border-radius:50%;border:none;background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,.12);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sub);transition:background .2s,color .2s}
     .mic-btn svg{width:28px;height:28px}
     @keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.45)}70%{box-shadow:0 0 0 14px rgba(34,197,94,0)}}
-    .mic-btn.listening{background:var(--green);color:#fff;animation:micpulse 1.3s infinite}
+    .mic-btn.listening{background:var(--green);color:var(--on-green);animation:micpulse 1.3s infinite}
     .mic-status{font-size:13px;color:var(--sub);font-weight:500}
     .mic-interim{font-size:15px;color:var(--text);font-style:italic;min-height:20px;text-align:center}
     .add-manual{display:flex;gap:8px;padding:10px 16px 0}
     .add-manual input{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:15px;font-family:inherit;outline:none;background:#fff}
     .add-manual input:focus{border-color:var(--green)}
-    .add-manual .btn-add{width:44px;height:44px;border-radius:10px;border:none;background:var(--green);color:#fff;font-size:24px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+    .add-manual .btn-add{width:44px;height:44px;border-radius:10px;border:none;background:var(--green);color:var(--on-green);font-size:24px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
     .photo-ph{border:2px dashed var(--border);border-radius:14px;height:130px;display:flex;flex-direction:row;background:#fff;overflow:hidden}
     .photo-src{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;color:var(--sub);cursor:pointer;transition:background .15s}
     .photo-src:active{background:var(--bg)}
@@ -88,7 +89,7 @@
     .sec{margin:14px 16px 0}
     .sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:6px}
     .badge{border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700}
-    .badge-g{background:var(--green);color:#fff}
+    .badge-g{background:var(--green);color:var(--on-green)}
     .badge-a{background:var(--amber);color:#fff}
     .sec-name{font-size:13px;color:var(--sub);font-weight:500}
     .s-item{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
@@ -96,7 +97,7 @@
     .s-item:active{background:var(--bg)}
     .s-item.done .s-name{text-decoration:line-through;color:#bbb}
     .chk{width:23px;height:23px;border:2px solid var(--border);border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
-    .chk.on{background:var(--green);border-color:var(--green)}
+    .chk.on{background:var(--green);border-color:var(--green);color:var(--on-green)}
     .s-name{flex:1;font-size:16px;line-height:1.3}
     .del-item{background:none;border:none;color:#ccc;font-size:22px;line-height:1;cursor:pointer;padding:0 2px;flex-shrink:0}
     .del-item:active{color:var(--red)}
@@ -120,7 +121,7 @@
     .drag-handle{color:#ccc;cursor:grab;padding:4px;flex-shrink:0;touch-action:none}
     .drag-handle:active{cursor:grabbing;color:#999}
     .reorder-locked .drag-handle{display:none}
-    .p-num{background:var(--green);color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
+    .p-num{background:var(--green);color:var(--on-green);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
     .p-info{flex:1;min-width:0}
     .p-title{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .p-count{font-size:12px;color:var(--sub);margin-top:2px}
@@ -810,7 +811,7 @@ function renderLista() {
 function itemHtml(it) {
   const qty = it.cantidad || 1;
   return `<div class="s-item${it.checked ? ' done' : ''}" id="si-${it.id}" onclick="toggleItem('${it.id}')">
-    <div class="chk${it.checked ? ' on' : ''}">${it.checked ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>
+    <div class="chk${it.checked ? ' on' : ''}">${it.checked ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>
     <span class="s-name">${esc(it.nombre)}</span>
     <div class="qty-ctrl" onclick="event.stopPropagation()">
       <button class="qty-btn" onclick="changeCantidad('${it.id}',-1)" ${qty<=1?'disabled':''}>−</button>
@@ -824,7 +825,7 @@ function itemHtml(it) {
 function itemHtmlUnclassified(it) {
   const qty = it.cantidad || 1;
   return `<div class="s-item${it.checked ? ' done' : ''}" id="si-${it.id}" onclick="toggleItem('${it.id}')">
-    <div class="chk${it.checked ? ' on' : ''}">${it.checked ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>
+    <div class="chk${it.checked ? ' on' : ''}">${it.checked ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>
     <span class="s-name">${esc(it.nombre)}</span>
     <div class="qty-ctrl" onclick="event.stopPropagation()">
       <button class="qty-btn" onclick="changeCantidad('${it.id}',-1)" ${qty<=1?'disabled':''}>−</button>
@@ -876,7 +877,7 @@ function toggleItem(id) {
     el.classList.toggle('done', it.checked);
     el.querySelector('.chk').className = 'chk' + (it.checked ? ' on' : '');
     el.querySelector('.chk').innerHTML = it.checked
-      ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+      ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : '';
     el.querySelector('.s-name').style.textDecoration = it.checked ? 'line-through' : '';
   }
   const countEl = document.getElementById('listaCount');
@@ -1222,12 +1223,12 @@ function delArt(aId, pId) {
 
 // ── THEMES ───────────────────────────────────────────────
 const THEMES = {
-  default:   { nombre: 'Genérico',   main: '#2e7d32', light: '#4caf50', dark: '#1b5e20' },
-  mercadona: { nombre: 'Mercadona',  main: '#FF6B00', light: '#FF9A4D', dark: '#CC5500' },
-  carrefour: { nombre: 'Carrefour',  main: '#004B9D', light: '#2373D8', dark: '#003070' },
-  aldi:      { nombre: 'Aldi',       main: '#00437A', light: '#1A69AE', dark: '#002B50' },
-  lidl:      { nombre: 'Lidl',       main: '#0050AA', light: '#2272CC', dark: '#003580' },
-  bm:        { nombre: 'BM',         main: '#007C3E', light: '#2DA865', dark: '#005229' },
+  default:   { nombre: 'Genérico',   main: '#2e7d32', light: '#4caf50', dark: '#1b5e20', text: '#fff' },
+  mercadona: { nombre: 'Mercadona',  main: '#009342', light: '#2DB562', dark: '#006B30', text: '#fff' },
+  carrefour: { nombre: 'Carrefour',  main: '#004B9D', light: '#2373D8', dark: '#003070', text: '#fff' },
+  aldi:      { nombre: 'Aldi',       main: '#2490d7', light: '#5BB5E8', dark: '#1870AA', text: '#fff' },
+  lidl:      { nombre: 'Lidl',       main: '#FFF000', light: '#FFF566', dark: '#CCB800', text: '#1a1a1a' },
+  bm:        { nombre: 'BM',         main: '#1a1a1a', light: '#444444', dark: '#000000', text: '#fff' },
 };
 
 function applyTheme(key) {
@@ -1236,6 +1237,7 @@ function applyTheme(key) {
   s.setProperty('--green', t.main);
   s.setProperty('--green-l', t.light);
   s.setProperty('--green-d', t.dark);
+  s.setProperty('--on-green', t.text || '#fff');
 }
 
 function selectTheme(key) {
