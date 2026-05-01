@@ -1,4 +1,4 @@
-const CACHE = 'pasillitos-v3';
+const CACHE = 'pasillitos-v4';
 const PRECACHE = [
   './manifest.json',
   './icons/icon.svg',
