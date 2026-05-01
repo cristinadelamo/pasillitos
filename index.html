@@ -152,6 +152,7 @@
     .s-sec h2{font-size:16px;font-weight:700;margin-bottom:14px}
     .s-sec p{font-size:13px;color:var(--sub);margin-top:10px;line-height:1.5}
     .s-stat{font-size:13px;color:var(--sub);margin-bottom:12px}
+    .s-desc{font-size:13px;color:var(--sub);margin-bottom:12px;line-height:1.4}
 
     /* FORM */
     .fg{margin-bottom:14px}
@@ -289,6 +290,7 @@
       </div>
       <div class="s-sec">
         <h2>📋 Catálogo de pasillos</h2>
+        <p class="s-desc">Solo pasillos y artículos. Útil para compartir tu catálogo con otro dispositivo o persona, sin incluir la lista actual ni la API key.</p>
         <button class="btn btn-s btn-w" onclick="exportCatalog()" style="margin-bottom:8px">⬇️ Exportar catálogo JSON</button>
         <button class="btn btn-s btn-w" onclick="document.getElementById('importCatalogFile').click()" style="margin-bottom:8px">⬆️ Importar catálogo JSON</button>
         <input type="file" id="importCatalogFile" accept=".json" style="display:none" onchange="importCatalog(this)">
@@ -296,6 +298,7 @@
       </div>
       <div class="s-sec">
         <h2>📊 Base de datos</h2>
+        <p class="s-desc">Copia completa de todos tus datos: pasillos, artículos, lista actual y API key. Úsala para hacer copias de seguridad o cambiar de dispositivo.</p>
         <p class="s-stat" id="dbStat"></p>
         <button class="btn btn-s btn-w" onclick="exportDB()" style="margin-bottom:8px">⬇️ Exportar copia de seguridad</button>
         <button class="btn btn-s btn-w" onclick="document.getElementById('importFile').click()" style="margin-bottom:8px">⬆️ Importar copia de seguridad</button>
