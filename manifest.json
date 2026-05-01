@@ -1,6 +1,6 @@
 {
-  "name": "Lista Compra",
-  "short_name": "Compra",
+  "name": "Pasillitos",
+  "short_name": "Pasillitos",
   "description": "Organiza tu lista de la compra por pasillos",
   "start_url": "./",
   "scope": "./",
