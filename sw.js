@@ -1,4 +1,4 @@
-const CACHE = 'pasillitos-v4';
+const CACHE = 'pasillitos-v5';
 const PRECACHE = [
   './manifest.json',
   './icons/icon.svg',
@@ -20,6 +20,9 @@ self.addEventListener('activate', e => {
         keys.filter(k => k !== CACHE).map(k => caches.delete(k))
       ))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll().then(clients =>
+        clients.forEach(c => c.postMessage({ type: 'SW_UPDATED' }))
+      ))
   );
 });
 

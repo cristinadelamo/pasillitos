@@ -571,6 +571,7 @@ function goTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
   document.getElementById('panel-' + name).classList.add('active');
   document.getElementById('tab-' + name).classList.add('on');
+  if (name === 'lista') renderLista();
   if (name === 'pasillos') renderPasillos();
   if (name === 'ajustes') renderSettings();
 }
@@ -1086,7 +1087,6 @@ function renderPasillos() {
         });
         persist();
         lista = loadLista();
-        renderLista();
       }
     });
   }
@@ -1412,6 +1412,15 @@ initApp();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data?.type === 'SW_UPDATED') {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerHTML = '🔄 Nueva versión disponible — <button onclick="location.reload()" style="background:none;border:none;color:inherit;font-weight:700;cursor:pointer;text-decoration:underline">Actualizar</button>';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 15000);
+    }
+  });
 }
 </script>
 </body>
