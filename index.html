@@ -950,6 +950,7 @@ function doClassify() {
 // ── PASILLOS UI ──────────────────────────────────────────
 let editPasilloId = null;
 let reorderUnlocked = false;
+let pasilloSortable = null;
 
 function toggleReorder() {
   reorderUnlocked = !reorderUnlocked;
@@ -1066,8 +1067,9 @@ function renderPasillos() {
   el.innerHTML = ps.map(p => pasilloCard(p)).join('');
   el.classList.toggle('reorder-locked', !reorderUnlocked);
 
+  if (pasilloSortable) { pasilloSortable.destroy(); pasilloSortable = null; }
   if (reorderUnlocked) {
-    Sortable.create(el, {
+    pasilloSortable = Sortable.create(el, {
       handle: '.drag-handle',
       animation: 150,
       ghostClass: 'sortable-ghost',
