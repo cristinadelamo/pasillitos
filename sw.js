@@ -1,7 +1,8 @@
-const CACHE = 'pasillitos-v5';
+const CACHE = 'pasillitos-v6';
 const PRECACHE = [
   './manifest.json',
-  './icons/icon.svg',
+  './icons/icon_192.png',
+  './icons/icon_512.png',
 ];
 
 self.addEventListener('install', e => {
