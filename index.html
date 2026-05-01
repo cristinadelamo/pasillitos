@@ -1073,11 +1073,14 @@ function renderPasillos() {
       ghostClass: 'sortable-ghost',
       onEnd() {
         const ids = [...el.querySelectorAll('.p-card')].map(c => c.id.replace('pc-', ''));
-        ids.forEach((id, i) => run('UPDATE pasillos SET numero=? WHERE id=?', [i + 1, id]));
+        ids.forEach((id, i) => {
+          run('UPDATE pasillos SET numero=? WHERE id=?', [i + 1, id]);
+          const badge = el.querySelector(`#pc-${id} .p-num`);
+          if (badge) badge.textContent = i + 1;
+        });
         persist();
         lista = loadLista();
         renderLista();
-        renderPasillos();
       }
     });
   }
