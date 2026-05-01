@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "com.cristinadelamo.pasillitos.twa",
-        "sha256_cert_fingerprints": ["76:FD:8E:3F:EB:EE:C6:B3:16:35:A0:73:88:7A:E9:A3:D4:D4:3B:1B:5F:69:04:52:14:94:64:2D:23:1E:3B:99"]
+        "sha256_cert_fingerprints": ["FF:96:75:0C:5A:69:AF:FF:DF:00:69:8B:02:6A:B4:78:DA:CB:9C:80:02:DD:48:13:5D:44:E9:CD:DA:72:AD:E0"]
       }
     }]
