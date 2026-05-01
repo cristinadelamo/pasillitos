@@ -951,8 +951,10 @@ function doClassify() {
 let editPasilloId = null;
 let reorderUnlocked = false;
 let pasilloSortable = null;
+let isDragging = false;
 
 function toggleReorder() {
+  if (isDragging) return;
   reorderUnlocked = !reorderUnlocked;
   renderPasillos();
 }
@@ -1073,7 +1075,9 @@ function renderPasillos() {
       handle: '.drag-handle',
       animation: 150,
       ghostClass: 'sortable-ghost',
+      onStart() { isDragging = true; },
       onEnd() {
+        setTimeout(() => { isDragging = false; }, 500);
         const ids = [...el.querySelectorAll('.p-card')].map(c => c.id.replace('pc-', ''));
         ids.forEach((id, i) => {
           run('UPDATE pasillos SET numero=? WHERE id=?', [i + 1, id]);
