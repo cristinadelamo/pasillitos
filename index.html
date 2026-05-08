@@ -101,6 +101,8 @@
     .s-name{flex:1;font-size:16px;line-height:1.3}
     .del-item{background:none;border:none;color:#ccc;font-size:22px;line-height:1;cursor:pointer;padding:0 2px;flex-shrink:0}
     .del-item:active{color:var(--red)}
+    .move-item{background:none;border:none;color:#ccc;font-size:16px;line-height:1;cursor:pointer;padding:0 4px;flex-shrink:0}
+    .move-item:active{color:var(--green)}
     .qty-ctrl{display:flex;align-items:center;gap:2px;flex-shrink:0}
     .qty-btn{width:26px;height:26px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0;line-height:1}
     .qty-btn:active{background:var(--bg)}
@@ -367,6 +369,23 @@
     <div class="modal-btns">
       <button class="btn btn-s" style="flex:1" onclick="skipClassify()">Saltar</button>
       <button class="btn btn-p" style="flex:1" onclick="doClassify()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MOVE ITEM overlay -->
+<div class="overlay" id="moveOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <p class="cl-sub">Cambiar pasillo</p>
+    <p class="cl-name" id="moveName"></p>
+    <div class="fg">
+      <label>Pasillo</label>
+      <select id="moveSelect"></select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-s" style="flex:1" onclick="closeMoveItem()">Cancelar</button>
+      <button class="btn btn-p" style="flex:1" onclick="confirmMoveItem()">Mover</button>
     </div>
   </div>
 </div>
@@ -823,6 +842,7 @@ function itemHtml(it) {
       <span class="qty-val">${qty}</span>
       <button class="qty-btn" onclick="changeCantidad('${it.id}',1)">+</button>
     </div>
+    <button class="move-item" onclick="event.stopPropagation();openMoveItem('${it.id}')">⇄</button>
     <button class="del-item" onclick="event.stopPropagation();deleteListaItem('${it.id}')">×</button>
   </div>`;
 }
@@ -837,6 +857,7 @@ function itemHtmlUnclassified(it) {
       <span class="qty-val">${qty}</span>
       <button class="qty-btn" onclick="changeCantidad('${it.id}',1)">+</button>
     </div>
+    <button class="move-item" onclick="event.stopPropagation();openMoveItem('${it.id}')">⇄</button>
     <button class="del-item" onclick="event.stopPropagation();deleteListaItem('${it.id}')">×</button>
   </div>`;
 }
@@ -901,6 +922,40 @@ function clearLista() {
   document.getElementById('photoActions').style.display = 'none';
   renderLista();
   toast('Artículos tachados eliminados');
+}
+
+// ── MOVE ITEM ────────────────────────────────────────────
+let moveItemId = null;
+
+function openMoveItem(id) {
+  const it = lista.find(i => i.id === id);
+  if (!it) return;
+  moveItemId = id;
+  document.getElementById('moveName').textContent = it.nombre;
+  const ps = allPasillos().sort((a, b) => a.numero - b.numero);
+  document.getElementById('moveSelect').innerHTML = ps.map(p =>
+    `<option value="${p.id}"${p.id === it.pId ? ' selected' : ''}>Pasillo ${p.numero} – ${esc(p.nombre)}</option>`).join('');
+  document.getElementById('moveOverlay').classList.add('show');
+}
+
+function closeMoveItem() {
+  document.getElementById('moveOverlay').classList.remove('show');
+  moveItemId = null;
+}
+
+function confirmMoveItem() {
+  if (!moveItemId) return;
+  const pId = document.getElementById('moveSelect').value;
+  const pasillo = allPasillos().find(p => p.id === pId);
+  if (!pasillo) return;
+  const it = lista.find(i => i.id === moveItemId);
+  if (!it) return;
+  it.pId = pasillo.id;
+  it.pNum = pasillo.numero;
+  it.pNom = pasillo.nombre;
+  assignPasilloInLista(moveItemId, pId);
+  closeMoveItem();
+  renderLista();
 }
 
 // ── CLASSIFY ─────────────────────────────────────────────
