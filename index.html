@@ -1413,19 +1413,6 @@ async function initApp() {
 
 initApp();
 
-// Wake Lock: evita que el móvil bloquee la pantalla mientras se usa la app
-let wakeLock = null;
-async function requestWakeLock() {
-  if (!('wakeLock' in navigator)) return;
-  try {
-    wakeLock = await navigator.wakeLock.request('screen');
-  } catch(e) {}
-}
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') requestWakeLock();
-});
-requestWakeLock();
-
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
   navigator.serviceWorker.addEventListener('message', e => {
