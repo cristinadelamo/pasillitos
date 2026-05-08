@@ -129,6 +129,12 @@
 
     /* ── PASILLOS TAB ── */
     .p-actions{padding:14px 16px 2px}
+    .catalog-search-wrap{padding:10px 16px 2px}
+    .catalog-search-box{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px}
+    .catalog-search-box:focus-within{border-color:var(--green)}
+    .catalog-search-box svg{flex-shrink:0;color:var(--sub)}
+    .catalog-search-box input{flex:1;border:none;outline:none;font-size:15px;font-family:inherit;background:transparent}
+    .p-item.hidden{display:none}
     .p-card{margin:10px 16px;background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.09);overflow:hidden}
     .p-card.sortable-ghost{opacity:.4}
     .p-hdr{display:flex;align-items:center;padding:14px 16px;cursor:pointer;user-select:none;gap:12px}
@@ -214,7 +220,7 @@
 
 <!-- HEADER -->
 <header class="hdr">
-  <h1><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61h9.72a2 2 0 001.98-1.61L23 6H6"/><line x1="7" y1="11" x2="22" y2="11"/><line x1="12" y1="6" x2="11" y2="17"/><line x1="17" y1="6" x2="16" y2="17"/></svg>Pasillitos</h1>
+  <h1 onclick="goTab('lista')" style="cursor:pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61h9.72a2 2 0 001.98-1.61L23 6H6"/><line x1="7" y1="11" x2="22" y2="11"/><line x1="12" y1="6" x2="11" y2="17"/><line x1="17" y1="6" x2="16" y2="17"/></svg>Pasillitos</h1>
   <div class="hdr-actions">
     <button class="hdr-btn" id="shopBtn" style="display:none" onclick="toggleShopMode()">Comprar</button>
     <button class="hdr-btn" id="clearBtn" style="display:none" onclick="clearLista()">Nueva lista</button>
@@ -284,6 +290,12 @@
     <div class="p-actions">
       <button class="btn btn-p btn-w" onclick="openPasilloModal()">+ Añadir pasillo</button>
       <button class="btn btn-s btn-w" id="reorderBtn" onclick="toggleReorder()" style="margin-top:8px;display:none">↕️ Reordenar pasillos</button>
+    </div>
+    <div class="catalog-search-wrap" id="catalogSearchWrap" style="display:none">
+      <div class="catalog-search-box">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="catalogSearch" placeholder="Buscar en el catálogo…" oninput="filterCatalog()" autocomplete="off">
+      </div>
     </div>
     <div id="pasillosList"></div>
   </div>
@@ -1241,13 +1253,34 @@ function backupCatalog(ps) {
   try { localStorage.setItem('pasillitos_catalog_backup', JSON.stringify(catalogToJson(ps))); } catch (e) {}
 }
 
+function filterCatalog() {
+  const q = norm(document.getElementById('catalogSearch').value);
+  document.querySelectorAll('.p-card').forEach(card => {
+    const body = card.querySelector('.p-body');
+    let anyVisible = false;
+    card.querySelectorAll('.p-item').forEach(item => {
+      const match = !q || norm(item.querySelector('.p-item-name').textContent).includes(q);
+      item.classList.toggle('hidden', !match);
+      if (match) anyVisible = true;
+    });
+    if (q) {
+      card.style.display = anyVisible ? '' : 'none';
+      if (anyVisible) body.classList.add('open');
+    } else {
+      card.style.display = '';
+    }
+  });
+}
+
 function renderPasillos() {
   const ps = allPasillos();
   backupCatalog(ps);
   const el = document.getElementById('pasillosList');
   const btn = document.getElementById('reorderBtn');
 
+  document.getElementById('catalogSearchWrap').style.display = ps.length ? '' : 'none';
   if (!ps.length) {
+    document.getElementById('catalogSearch').value = '';
     reorderUnlocked = false;
     btn.style.display = 'none';
     el.innerHTML = `<div class="empty">
