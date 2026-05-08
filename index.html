@@ -39,7 +39,7 @@
     .hdr-actions{margin-left:auto}
     .tab-count{font-size:10px;background:var(--green);color:var(--on-green);border-radius:8px;padding:1px 5px;margin-left:3px;font-weight:700}
     .tab.on .tab-count{background:var(--green-d)}
-    .hdr-btn{background:rgba(255,255,255,.18);border:none;color:var(--on-green);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
+    .hdr-btn{background:var(--hdr-btn-bg,rgba(255,255,255,.18));border:1.5px solid var(--hdr-btn-border,transparent);color:var(--on-green);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
 
     /* TABS */
     .content{flex:1;overflow:hidden;position:relative}
@@ -1513,6 +1513,9 @@ function applyTheme(key) {
   s.setProperty('--green-l', t.light);
   s.setProperty('--green-d', t.dark);
   s.setProperty('--on-green', t.text || '#fff');
+  const lightHeader = (t.text || '#fff') === '#1a1a1a';
+  s.setProperty('--hdr-btn-bg', lightHeader ? 'rgba(0,0,0,.1)' : 'rgba(255,255,255,.18)');
+  s.setProperty('--hdr-btn-border', lightHeader ? 'rgba(0,0,0,.18)' : 'transparent');
 }
 
 function selectTheme(key) {
