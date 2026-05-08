@@ -634,7 +634,8 @@ function toggleListening() {
       document.getElementById('micInterim').textContent = t;
       if (e.results[e.results.length - 1].isFinal) {
         document.getElementById('micInterim').textContent = '';
-        addDictatedItem(t.trim());
+        const txt = t.trim();
+        addDictatedItem(txt.charAt(0).toUpperCase() + txt.slice(1));
       }
     };
 
@@ -1411,6 +1412,19 @@ async function initApp() {
 }
 
 initApp();
+
+// Wake Lock: evita que el móvil bloquee la pantalla mientras se usa la app
+let wakeLock = null;
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+  } catch(e) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') requestWakeLock();
+});
+requestWakeLock();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
