@@ -611,6 +611,17 @@ function articuloExiste(pasilloId, nombre) {
   return !!q1('SELECT 1 FROM articulos WHERE pasillo_id=? AND lower(nombre)=lower(?)', [pasilloId, nombre]);
 }
 
+function learnArticulo(pasilloId, nombre) {
+  const n = norm(nombre);
+  const existing = q('SELECT id, pasillo_id, nombre FROM articulos').filter(a => norm(a.nombre) === n);
+  if (existing.length) {
+    existing.forEach(a => { if (a.pasillo_id !== pasilloId) run('UPDATE articulos SET pasillo_id=? WHERE id=?', [pasilloId, a.id]); });
+    persist();
+  } else {
+    addArticulo(pasilloId, nombre);
+  }
+}
+
 // ── DATA: LISTA ──────────────────────────────────────────
 function loadLista() {
   return q(`
@@ -1167,6 +1178,7 @@ function confirmMoveItem() {
   it.pNum = pasillo.numero;
   it.pNom = pasillo.nombre;
   run('UPDATE lista SET nombre=?, pasillo_id=? WHERE id=?', [nombre, pId, moveItemId]);
+  learnArticulo(pId, nombre);
   persist();
   closeMoveItem();
   renderLista();
@@ -1212,10 +1224,8 @@ function doClassify() {
   const it = clQueue[clIdx];
   assignPasilloInLista(it.id, pId);
 
-  // Learn: add to catalog
-  if (!articuloExiste(pId, it.nombre)) {
-    addArticulo(pId, it.nombre);
-  }
+  // Learn: add to catalog (or move it if it exists in another aisle)
+  learnArticulo(pId, it.nombre);
 
   clIdx++;
   showClassify(ps);
