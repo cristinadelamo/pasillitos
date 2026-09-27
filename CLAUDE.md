@@ -16,7 +16,7 @@ The entire application lives in `index.html` (~1290 lines). It has three logical
 - **sql.js** (CDN): SQLite compiled to WebAssembly, runs fully in-browser
 - **IndexedDB** (`pasillitos` DB): Persists the SQLite binary blob across sessions
 - Schema tables: `config` (API key), `pasillos` (aisles), `articulos` (item catalog per aisle), `lista` (current shopping list with aisle assignment and checked state)
-- All DB mutations call `persist()` immediately, which exports the SQLite binary and saves it to IndexedDB
+- All DB mutations call `persist()` immediately, which exports the SQLite binary and saves it to IndexedDB. `persist()` serializes writes (one in flight at a time, always exporting the latest state right before each write) so a stale snapshot can never overwrite a newer one.
 - Query helpers: `q()` (multi-row), `q1()` (single-row), `run()` (mutation)
 
 ### In-Memory State
