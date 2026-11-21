@@ -350,6 +350,7 @@
         <h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Base de datos</h2>
         <p class="s-desc">Copia completa de todos tus datos: pasillos, artículos, lista actual y API key. Úsala para hacer copias de seguridad o cambiar de dispositivo.</p>
         <p class="s-stat" id="dbStat"></p>
+        <p class="s-stat" id="storageStat"></p>
         <button class="btn btn-s btn-w" onclick="exportDB()" style="margin-bottom:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Exportar copia de seguridad</button>
         <button class="btn btn-s btn-w" onclick="document.getElementById('importFile').click()" style="margin-bottom:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importar copia de seguridad</button>
         <input type="file" id="importFile" accept=".sqlite" style="display:none" onchange="importDB(this)">
@@ -540,13 +541,38 @@ async function persist() {
   try {
     do {
       persistPending = false;
-      await idbSave(sqldb.export());
+      const bytes = sqldb.export();
+      try { await idbSave(bytes); }
+      catch (e) { console.error('DB persist error (IndexedDB):', e); }
+      await mirrorSave(bytes); // segunda copia aunque IndexedDB falle
     } while (persistPending);
   } catch (e) {
     console.error('DB persist error:', e);
   } finally {
     persistBusy = false;
   }
+}
+
+// ── ESPEJO EN CACHE API (copia de seguridad de la BD) ────
+// IndexedDB puede ser borrado/corrupto por el sistema (sobre todo en iOS con
+// PWA instalada). Guardamos la BD completa también en la Cache API, que es un
+// almacén independiente del IndexedDB del origen.
+const MIRROR_CACHE = 'pasillitos-db-mirror';
+async function mirrorSave(bytes) {
+  try {
+    if (!('caches' in window)) return;
+    const c = await caches.open(MIRROR_CACHE);
+    await c.put('db-mirror', new Response(bytes, { headers: { 'Content-Type': 'application/octet-stream' } }));
+  } catch (e) { /* modo privado o caché no disponible: seguir sin espejo */ }
+}
+async function mirrorLoad() {
+  try {
+    if (!('caches' in window)) return null;
+    const c = await caches.open(MIRROR_CACHE);
+    const resp = await c.match('db-mirror');
+    if (!resp) return null;
+    return new Uint8Array(await resp.arrayBuffer());
+  } catch (e) { return null; }
 }
 
 // ── SCHEMA ───────────────────────────────────────────────
@@ -1270,6 +1296,20 @@ function catalogToJson(ps) {
   };
 }
 
+function restoreCatalogFromJson(data) {
+  const ps = data.pasillos || [];
+  run('DELETE FROM articulos');
+  run('DELETE FROM pasillos');
+  ps.forEach(p => {
+    const pId = uid();
+    run('INSERT INTO pasillos(id,numero,nombre) VALUES(?,?,?)', [pId, p.numero || 0, p.nombre]);
+    (p.articulos || []).forEach(nombre => {
+      run('INSERT INTO articulos(id,pasillo_id,nombre) VALUES(?,?,?)', [uid(), pId, nombre]);
+    });
+  });
+  return ps.length;
+}
+
 function exportCatalog() {
   const data = catalogToJson(allPasillos());
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1285,18 +1325,11 @@ function checkLocalBackup() {
     if (!raw) { toast('No hay backup de emergencia guardado'); return; }
     const data = JSON.parse(raw);
     const ps = data.pasillos || [];
+    if (!ps.length) { toast('El backup de emergencia está vacío'); return; }
     const arts = ps.reduce((n, p) => n + (p.articulos?.length || 0), 0);
     const fecha = data.savedAt ? new Date(data.savedAt).toLocaleString('es-ES') : 'fecha desconocida';
     if (!confirm(`Backup encontrado:\n${ps.length} pasillos, ${arts} artículos\nGuardado: ${fecha}\n\n¿Restaurar este backup?`)) return;
-    run('DELETE FROM articulos');
-    run('DELETE FROM pasillos');
-    ps.forEach(p => {
-      const pId = uid();
-      run('INSERT INTO pasillos(id,numero,nombre) VALUES(?,?,?)', [pId, p.numero || 0, p.nombre]);
-      (p.articulos || []).forEach(nombre => {
-        run('INSERT INTO articulos(id,pasillo_id,nombre) VALUES(?,?,?)', [uid(), pId, nombre]);
-      });
-    });
+    restoreCatalogFromJson(data);
     persist();
     lista = loadLista();
     renderLista();
@@ -1313,15 +1346,7 @@ function importCatalog(input) {
       const data = JSON.parse(e.target.result);
       if (!Array.isArray(data.pasillos)) throw new Error('Formato inválido');
       if (!confirm(`¿Importar catálogo con ${data.pasillos.length} pasillos? Esto reemplazará el catálogo actual.`)) { input.value = ''; return; }
-      run('DELETE FROM articulos');
-      run('DELETE FROM pasillos');
-      data.pasillos.forEach(p => {
-        const pId = uid();
-        run('INSERT INTO pasillos(id,numero,nombre) VALUES(?,?,?)', [pId, p.numero || 0, p.nombre]);
-        (p.articulos || []).forEach(nombre => {
-          run('INSERT INTO articulos(id,pasillo_id,nombre) VALUES(?,?,?)', [uid(), pId, nombre]);
-        });
-      });
+      restoreCatalogFromJson(data);
       persist();
       lista = loadLista();
       renderLista();
@@ -1615,6 +1640,16 @@ function renderSettings() {
   const lis = q('SELECT COUNT(*) AS n FROM lista')[0]?.n || 0;
   document.getElementById('dbStat').textContent =
     `${ps} pasillo${ps !== 1 ? 's' : ''} · ${arts} artículo${arts !== 1 ? 's' : ''} en catálogo · ${lis} en lista actual`;
+  const storageStat = document.getElementById('storageStat');
+  if (navigator.storage?.persisted) {
+    navigator.storage.persisted().then(ok => {
+      storageStat.textContent = ok
+        ? '✓ Almacenamiento persistente: el sistema no debería borrar tus datos'
+        : '⚠️ Almacenamiento no persistente: el sistema podría borrar los datos';
+    }).catch(() => { storageStat.textContent = ''; });
+  } else {
+    storageStat.textContent = '';
+  }
 }
 
 function saveKey() {
@@ -1693,6 +1728,7 @@ function clearAll() {
   if (!confirm('¿Borrar todos los datos? Esta acción no se puede deshacer.')) return;
   sqldb.exec('DELETE FROM lista; DELETE FROM articulos; DELETE FROM pasillos; DELETE FROM config;');
   persist();
+  try { localStorage.removeItem('pasillitos_catalog_backup'); } catch (e) {}
   lista = [];
   photoData = null;
   document.getElementById('photoPrev').classList.remove('show');
@@ -1711,27 +1747,58 @@ document.getElementById('pName').addEventListener('keypress', e => { if (e.key =
 async function initApp() {
   const msg = document.getElementById('initMsg');
   try {
+    // Pedir almacenamiento persistente cuanto antes: evita que el sistema
+    // expulse los datos de la PWA instalada por presión de almacenamiento.
+    if (navigator.storage?.persist) { try { await navigator.storage.persist(); } catch(e) {} }
+
     msg.textContent = 'Cargando motor SQLite...';
     SQL = await initSqlJs({
       locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/${f}`
     });
 
     msg.textContent = 'Leyendo base de datos...';
-    const saved = await idbLoad();
+    let saved = null;
+    try { saved = await idbLoad(); }
+    catch (e) { console.error('IndexedDB ilegible:', e); }
 
+    let recovered = null; // 'mirror' | 'catalog'
     if (saved) {
-      const arr = saved instanceof Uint8Array ? saved : new Uint8Array(saved);
-      sqldb = new SQL.Database(arr);
-    } else {
-      sqldb = new SQL.Database();
+      try {
+        const arr = saved instanceof Uint8Array ? saved : new Uint8Array(saved);
+        sqldb = new SQL.Database(arr);
+      } catch (e) {
+        console.error('BD de IndexedDB corrupta:', e);
+        sqldb = null;
+      }
     }
+    if (!sqldb) {
+      // IndexedDB vacío o corrupto → recuperar del espejo en Cache API (BD completa)
+      const mirror = await mirrorLoad();
+      if (mirror) {
+        try { sqldb = new SQL.Database(mirror); recovered = 'mirror'; }
+        catch (e) { console.error('Espejo corrupto:', e); sqldb = null; }
+      }
+    }
+    if (!sqldb) sqldb = new SQL.Database();
 
     sqldb.exec(SCHEMA);
     try { run('ALTER TABLE lista ADD COLUMN cantidad INTEGER NOT NULL DEFAULT 1'); } catch(e) {}
     try { run('ALTER TABLE articulos ADD COLUMN frecuente INTEGER NOT NULL DEFAULT 0'); } catch(e) {}
-    if (!saved) persist();
 
-    if (navigator.storage?.persist) navigator.storage.persist();
+    // Sin IndexedDB ni espejo → último recurso: backup de catálogo en localStorage
+    if (!saved && !recovered) {
+      try {
+        const raw = localStorage.getItem('pasillitos_catalog_backup');
+        const data = raw ? JSON.parse(raw) : null;
+        if (data && Array.isArray(data.pasillos) && data.pasillos.length) {
+          restoreCatalogFromJson(data);
+          recovered = 'catalog';
+        }
+      } catch (e) { console.error('Backup de emergencia ilegible:', e); }
+    }
+
+    // Reescribir IndexedDB para sanearlo con lo recuperado (o inicializarlo)
+    if (!saved || recovered) persist();
 
     applyTheme(getCfg('theme') || 'default');
     applyDarkMode(getCfg('dark_mode') === '1');
@@ -1739,6 +1806,11 @@ async function initApp() {
     document.getElementById('initScreen').classList.add('hidden');
     renderLista();
     updateHabitualesBtn();
+    if (recovered === 'mirror') toast('Base de datos recuperada de la copia de seguridad ✓');
+    else if (recovered === 'catalog') {
+      toast('Catálogo recuperado del backup de emergencia ✓');
+      backupCatalog(allPasillos()); // refrescar fecha del backup
+    }
   } catch (e) {
     console.error(e);
     document.getElementById('initScreen').innerHTML = `

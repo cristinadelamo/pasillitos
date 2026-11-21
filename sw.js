@@ -1,4 +1,7 @@
-const CACHE = 'pasillitos-v7';
+const CACHE = 'pasillitos-v8';
+// Espejo de la BD guardado por index.html (persist). NUNCA borrar en activate:
+// es la copia de seguridad de la que se recuperan los datos si IndexedDB se pierde.
+const DATA_MIRROR = 'pasillitos-db-mirror';
 const PRECACHE = [
   './manifest.json',
   './icons/icon_192.png',
@@ -18,7 +21,7 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+        keys.filter(k => k !== CACHE && k !== DATA_MIRROR).map(k => caches.delete(k))
       ))
       .then(() => self.clients.claim())
       .then(() => self.clients.matchAll().then(clients =>
